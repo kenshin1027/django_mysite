@@ -1,0 +1,11 @@
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'mylibrary/style.css' %}" />
+{% if reader_list %}
+<ul>
+{% for reader in reader_list %}
+<li><a href="{% url 'mylibrary:readerdetail' reader.id %}">{{ reader.name }}</a></li>
+{% endfor %}
+</ul>
+{% else %}
+<p>No readers are available.</p>
+{% endif %}

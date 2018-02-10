@@ -1,0 +1,11 @@
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'mylibrary/style.css' %}" />
+{% if latest_book_list %}
+<ul>
+{% for book in latest_book_list %}
+<li><a href="{% url 'mylibrary:bookdetail' book.id %}">{{ book.name }}</a></li>
+{% endfor %}
+</ul>
+{% else %}
+<p>No books are available.</p>
+{% endif %}
