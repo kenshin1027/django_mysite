@@ -14,8 +14,10 @@ app_name = 'mylibrary'
 
 urlpatterns = [
                path('bookindex/', views.BookIndexView.as_view(), name='bookindex'),
-               path('readerindex/', views.ReaderIndexView.as_view(), name='readerindex'),
                path('<int:pk>/book/', views.BookDetailView.as_view(), name='bookdetail'),
                path('<int:pk>/reader/', views.ReaderDetailView.as_view(), name='readerdetail'),
+               path('login/', views.login),
+               path('register/', views.register),
+               path('logout/', views.logout),
 
 ]

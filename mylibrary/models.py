@@ -1,6 +1,7 @@
-# -*- coding: utf-8 -*-
+# -*- coding:utf-8 -*-
 from django.db import models
 import datetime
+from django.contrib.auth.models import User
 
 
 class Reader(models.Model):
@@ -10,7 +11,7 @@ class Reader(models.Model):
         (2, '月卡'),
         (3, '次卡'),
     )
-    name = models.CharField(max_length=10)
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
     birth_year = models.IntegerField(blank=True, default=2000)
     phone_number = models.CharField(max_length=11, blank=True)
     address = models.CharField(max_length=50, blank=True)
@@ -27,11 +28,8 @@ class Reader(models.Model):
             return True
 
     def __str__(self):
-        return self.name
+        return User.objects.get(pk=self.user_id).username
 
-
-# class Fruit(models.Model):
-#     name = models.CharField(max_length=100, primary_key=True)
 
 
 class Book(models.Model):
@@ -53,7 +51,7 @@ class Book(models.Model):
         ('geography', '地理'),
         ('biology', '生物'),
     )
-    name = models.CharField(max_length=30)
+    name = models.CharField(max_length=30, blank=True)
     author = models.CharField(max_length=20, blank=True)
     publisher = models.CharField(max_length=20, blank=True)
     language = models.CharField(max_length=2, choices=BOOK_LANGUAGE, default='CN')
