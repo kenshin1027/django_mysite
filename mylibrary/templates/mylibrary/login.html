@@ -1,1 +1,22 @@
-<!DOCTYPE html><html><head>    <title>Login</title></head><body><form method="POST">    {% csrf_token %}    {{uf.as_p}}    <input type="submit" value="login">    <br>    <a href="http://127.0.0.1:8000/mylibrary/register">register</a></form></body></html>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=gb2312" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Login</title>
+</head>
+<body>
+<h1>读者登陆</h1>
+    <form action="/mylibrary/login/" method = "POST">
+        {% csrf_token %}
+        <p>用户名:{{ lf.username }}<span>{{ errors.username }}</span></p>
+        <p>&nbsp&nbsp密码:{{ lf.password }}<span>{{ errors.password }}</span></p>
+        <p>验证码:{{ lf.captcha }}<span>{{ errors.captcha }}</span></p>
+        <input type="submit" name="login" value="登陆" style="width:70px;height:30px; font-size:20px;">
+    </form>
+    <br/>
+    <span><a href="/mylibrary/fetchpwd/">忘记密码</a></span>
+    &nbsp&nbsp<span><a href="/mylibrary/register/">立刻注册</a></span><br/><br/>
+    <span><a href="/mylibrary/active/">激活账号</a></span>
+</body>
+</html>
