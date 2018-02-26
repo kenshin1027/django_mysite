@@ -1,103 +1,154 @@
+# -*- coding: utf-8 -*-
 # Create your views here.
-from .models import Reader, Book
-from django.shortcuts import get_object_or_404, render, render_to_response
+from .models import Book
+from django.shortcuts import render
 from django.views import generic
-from django.utils import timezone
 from django import forms
 from django.contrib.auth.models import User
-from django.http import HttpResponse, HttpResponseRedirect
-from django.contrib import auth
-from django.template import RequestContext
-from django.contrib.auth.forms import UserCreationForm
 from django.core.validators import RegexValidator
 from django.forms import widgets
-from django.forms import fields
-from django.core.exceptions import ValidationError
+from django.contrib.auth import authenticate
+from captcha.fields import CaptchaField
 
 
 class RegisterForm(forms.Form):
+    error_css_class = 'error'
+    required_css_class = 'required'
     username = forms.CharField(
         label='用户名',
         required=True,
-        widget=widgets.TextInput(attrs={'class': "form-control", 'placeholder': '用户名为8-12个字符'}),
-        min_length=6,
+        help_text='选择自己常用的用户名',
+        widget=widgets.TextInput(attrs={'class': "form-control", 'placeholder': '用户名为4-12个字符'}),
+        min_length=4,
         max_length=12,
         strip=True,
         error_messages={'required': '标题不能为空',
-                        'min_length': '用户名最少为6个字符', },
+                        'min_length': '用户名最少为4个字符', },
     )
-    #password = forms.CharField(label='密__码', widget=forms.PasswordInput())
     password = forms.CharField(
         label='密 码',
-        widget=forms.PasswordInput(attrs={'class': "form-control", }, render_value=True),
+        widget=forms.PasswordInput(attrs={'class': "form-control", 'placeholder': '包含字母数字'},  render_value=True),
         required=True,
         min_length=6,
-        max_length=14,
+        max_length=18,
+        help_text='长度6~18位',
         strip=True,
         validators=[
-            RegexValidator(r'((?=.*\d))^.{6,12}$', '必须包含数字'),
-            RegexValidator(r'((?=.*[a-zA-Z]))^.{6,12}$', '必须包含字母'),
-            RegexValidator(r'((?=.*[^a-zA-Z0-9]))^.{6,12}$', '必须包含特殊字符'),
-            RegexValidator(r'^.(\S){6,10}$', '密码不能包含空白字符'),
+            RegexValidator(r'((?=.*\d))^.{6,18}$', '必须包含数字'),
+            RegexValidator(r'((?=.*[a-zA-Z]))^.{6,18}$', '必须包含字母'),
+            # RegexValidator(r'((?=.*[^a-zA-Z0-9]))^.{6,18}$', '必须包含特殊字符'),
+            RegexValidator(r'^.(\S){5,17}$', '密码不能包含空白字符'),
         ],
         error_messages={'required': '密码不能为空!',
                         'min_length': '密码最少为6个字符',
-                        'max_length': '密码最多不超过为12个字符!', }
+                        'max_length': '密码最多不超过为18个字符!', }
     )
     password_again = forms.CharField(
-        widget=forms.PasswordInput(attrs={'class': "form-control", 'placeholder': '请再次输入密码!'}, render_value=True),
+        label='确认密码',
+        widget=forms.PasswordInput(attrs={'class': "form-control", 'placeholder': '请再次输入密码'}, render_value=True),
         required=True,
         strip=True,
         error_messages={'required': '请再次输入密码!', }
 
     )
+    # email = forms.EmailField(error_messages={'required': u'邮箱不能为空'})
+    email = forms.EmailField(
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "请输入邮箱账号", "value": "", "required": "required", }),
+        required=True,
+        max_length=30,
+        error_messages={"required": "用户名不能为空", }
+    )
+    captcha = CaptchaField()
+
+    def clean(self):
+        cleaned_data = super(RegisterForm, self).clean()
+        password = cleaned_data.get("password")
+        password_again = cleaned_data.get("password_again")
+        username = cleaned_data.get('username')
+        users = User.objects.filter(username=username).count()
+        if users:
+            error_str = username + "用户已经存在"
+            self.add_error('username', error_str)
+
+        if password != password_again:
+            self.add_error('password_again', u"两次密码必须一致")
+
+
+
+class LoginForm(forms.Form):
+    username = forms.CharField(
+        required=True,
+        widget=widgets.TextInput(attrs={'class': "form-control",'placeholder': '请输入用户名'}),
+        min_length=4,
+        max_length=12,
+        strip=True,
+        error_messages={'required': '用户名不能为空',}
+    )
+
+    password = forms.CharField(
+        widget=widgets.PasswordInput(attrs={'class': "form-control", 'placeholder': '请输入密码'}),
+        required=True,
+        # min_length=6,
+        max_length=18,
+        strip=True,
+        error_messages={'required': '密码不能为空!', }
+    )
+    captcha = CaptchaField()
+    def clean(self):
+        username = self.cleaned_data.get('username')
+        user_count = User.objects.filter(username=username).count()
+        if username:
+            if not user_count:
+                error_str = '不存在' + username
+                self.add_error('username', error_str)
 
 
 def register(request):
-    method = request.method
-    if method == 'POST':
-        uf = RegisterForm(request.POST)
-        if uf.is_valid():
-            username = uf.cleaned_data['username']
-            password = uf.cleaned_data['password']
-            try:
-                choose_user = User.objects.filter(username=username).get().username
-                return render(request, 'mylibrary/register.html', {'choose_user': choose_user})
-            except:
-                new_user = User.objects.create_user(username=username, password=password)
-                new_user.save()
-                return render(request, 'mylibrary/register.html', {'username': username})
-    else:
-        uf = RegisterForm()
-        #return render_to_response('mylibrary/register.html', {'uf': uf, 'method': method})#, context_instance=RequestContext(req))
-        return render(request, 'mylibrary/register.html', {'uf': uf, 'method': method})
+    rf = RegisterForm()
+    if request.method == 'POST':
+        user_input = RegisterForm(request.POST)
+        if user_input.is_valid():
+            username = user_input.cleaned_data['username']
+            password = user_input.cleaned_data['password']
+            email = user_input.cleaned_data['email']
+            new_user = User.objects.create_user(username=username, password=password, email=email, is_active=0)
+            new_user.save()
+            return render(request, 'mylibrary/register_success.html', {'username': username})
+        else:
+            return render(request, 'mylibrary/register.html', {'rf': user_input, 'errors': user_input.errors})
+    return render(request, 'mylibrary/register.html', {'rf': rf})
 
 
 def login(request):
+    lf = LoginForm()
     if request.method == 'POST':
-        uf = UserForm(request.POST)
-        if uf.is_valid():
-            username = uf.cleaned_data['username']
-            password = uf.cleaned_data['password']
-
-            user = auth.authenticate(username=username, password=password)
-            if user is not None and user.is_active:
-                context = {'username': username}
-                return render(request, 'mylibrary/index.html', context)
-            # response = HttpResponseRedirect('mylibrary/index.html')
-            # response.set_cookie('cookie_username', username, 3600)
-            # return response
+        user_input = LoginForm(request.POST)
+        if user_input.is_valid():
+            username = user_input.cleaned_data['username']
+            password = user_input.cleaned_data['password']
+            user = User.objects.get(username=username)
+            if user.is_active:
+                user = authenticate(username=username, password=password)
+                if user is not None:
+                    context = {'user': user}
+                    return render(request, 'mylibrary/index.html', context)
+                else:
+                    LoginForm.add_error(user_input, 'password', '密码错误')
+                    #return render(request, 'mylibrary/login.html', {'lf': user_input, 'errors': user_input.errors})
             else:
-            #return HttpResponse('用户名或密码错误,请重新登录')
-                return HttpResponseRedirect('')
+                LoginForm.add_error(user_input, 'username', '账号未激活')
+                #return render(request, 'mylibrary/login.html', {'lf': user_input, 'errors': user_input.errors})
+
+        #else:
+        return render(request, 'mylibrary/login.html', {'lf': user_input, 'errors': user_input.errors})
     else:
-        uf = UserForm()
-        return render(request, 'mylibrary/login.html', {'uf': uf})
-        # return render_to_response('mylibrary/login.html', {'userform': userform})
+        return render(request, 'mylibrary/login.html', {'lf': lf})
 
 
 def logout(request):
-    response = HttpResponse('logout!<br><a href="127.0.0.1:8000/mylibrary/register>register</a>"')
+    #response = HttpResponse('logout!<br/><a href="/mylibrary/register>register</a>"')
+
+    response = render(request, 'mylibrary/index.html')
     response.delete_cookie('cookie_username')
     return response
 
@@ -107,10 +158,9 @@ class BookIndexView(generic.ListView):
     context_object_name = 'latest_book_list'
 
     def get_queryset(self):
-        """Return the top five chinese books order by alpha."""
         return Book.objects.filter(
             language='CN'
-        ).order_by('name')[:5]
+        ).order_by('name')
 
 
 class BookDetailView(generic.DetailView):
@@ -118,78 +168,46 @@ class BookDetailView(generic.DetailView):
     template_name = 'mylibrary/bookdetail.html'
 
 
-class ReaderDetailView(generic.DetailView):
-    model = Reader
-    template_name = 'mylibrary/readerdetail.html'
+class ActiveAccountForm(forms.Form):
+    username = forms.CharField(
+        label='用户名',
+        required=True,
+        widget=widgets.TextInput(attrs={'class': "form-control", 'placeholder': '用户名为4-12个字符'}),
+        min_length=4,
+        max_length=12,
+        strip=True,
+        error_messages={'required': '标题不能为空',
+                        'min_length': '用户名最少为4个字符', },
+    )
+    email = forms.EmailField(
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "请输入邮箱账号", "value": "", "required": "required", }),
+        required=True,
+        max_length=30,
+        error_messages={"required": "用户名不能为空", }
+    )
+    captcha = CaptchaField()
+
+    def clean(self):
+        username = self.cleaned_data.get('username')
+        user_count = User.objects.filter(username=username).count()
+        if username:
+            if not user_count:
+                error_str = '不存在' + username
+                self.add_error('username', error_str)
 
 
-# class RegisterForm(forms.Form):
-#     username = fields.CharField(
-#         required=True,
-#         widget=widgets.TextInput(attrs={'class': "form-control",'placeholder': '用户名为8-12个字符'}),
-#         min_length=6,
-#         max_length=12,
-#         strip=True,
-#         error_messages={'required': '标题不能为空',
-#                         'min_length': '用户名最少为6个字符',
-#                         'max_length': '用户名最不超过为20个字符'},
-#     )
-#
-#     email = fields.EmailField(
-#         required=True,
-#         widget=widgets.TextInput(attrs={'class': "form-control", 'placeholder': '请输入邮箱'}),
-#         # strip=True,
-#         error_messages={'required': '邮箱不能为空', 'invalid': '请输入正确的邮箱格式', },
-#     )
-#
-#     pwd = fields.CharField(
-#         widget=widgets.PasswordInput(attrs={'class': "form-control", 'placeholder': '必须包含数字,字母,特殊字符'},
-#                                      render_value=True),
-#         required=True,
-#         min_length=6,
-#         max_length=12,
-#         strip=True,
-#         validators=[
-#                 RegexValidator(r'((?=.*\d))^.{6,12}$', '必须包含数字'),
-#                 RegexValidator(r'((?=.*[a-zA-Z]))^.{6,12}$', '必须包含字母'),
-#                 RegexValidator(r'((?=.*[^a-zA-Z0-9]))^.{6,12}$', '必须包含特殊字符'),
-#                 RegexValidator(r'^.(\S){6,10}$', '密码不能包含空白字符'),
-#           ],
-#         error_messages={'required': '密码不能为空!',
-#                         'min_length': '密码最少为6个字符',
-#                         'max_length': '密码最多不超过为12个字符!', },
-#     )
-#     pwd_again = fields.CharField(
-#     #render_value会对于PasswordInput，错误是否清空密码输入框内容，默认为清除，我改为不清楚
-#         widget=widgets.PasswordInput(attrs={'class': "form-control", 'placeholder': '请再次输入密码!'}, render_value=True),
-#         required=True,
-#         strip=True,
-#         error_messages={'required': '请再次输入密码!', }
-#     )
-#
-#     def clean_username(self):
-#         username = self.cleaned_data['username']
-#         users = User.objects.filter(username=username).count()
-#         if users:
-#             raise ValidationError('用户已经存在！')
-#             return username
-#
-#     def clean_email(self):
-#         # 对email的扩展验证，查找用户是否已经存在
-#         email = self.cleaned_data['email']
-#         email_count = User.objects.filter(email=email).count()
-#         if email_count:
-#             raise ValidationError('该邮箱已经注册！')
-#             return email
-#
-#     def clean_new_password2(self):
-#         password1 = self.cleaned_data['pwd']
-#         password2 = self.cleaned_data['pwd_again']
-#         if password1 and password2:
-#             if password1 != password2:
-#                 # self.error_dict['pwd_again'] = '两次密码不匹配'
-#                 raise ValidationError('两次密码不匹配！')
-#
-#     def clean(self):
-#         #是基于form对象的验证，字段全部验证通过会调用clean函数进行验证
-#         self.clean_new_password2()
+def active_account(request):
+    af = ActiveAccountForm()
+    if request.method=='POST':
+        user_input = ActiveAccountForm(request.POST)
+        if user_input.is_valid():
+            username = user_input.cleaned_data['username']
+            email = user_input.cleaned_data['email']
+            email_db = User.objects.get(username=username).email
+            if email!=email_db:
+                ActiveAccountForm.add_error(user_input, 'email', '邮箱账号不匹配')
+            else:
+                pass
+                # to do tomorrow
+        return render(request, 'mylibrary/active.html', {'af': user_input, 'errors': user_input.errors})
+    return render(request, 'mylibrary/active.html', {'af':af},)
