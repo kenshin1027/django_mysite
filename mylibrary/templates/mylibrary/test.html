@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="http://cdn.static.runoob.com/libs/bootstrap/3.3.7/css/bootstrap.min.css">  
+  <script src="http://cdn.static.runoob.com/libs/jquery/2.1.1/jquery.min.js"></script>
+  <script src="http://cdn.static.runoob.com/libs/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <style type="text/css">
+  	body,html{
+  		height: 100%
+  	}
+  	.container{
+  		height: 55%;
+  		width: 50%;
+  		background: #C7C7C7;
+  		margin: 160px 0 0 360px;
+  		padding:20px  
+
+  	}
+  	.row{
+  		padding:0 0 0 20px;
+
+  	}
+  </style>
+<script>
+
+$(document).ready(function(){
+  
+  $("p").click(function(){
+  	txt= "the p width is:";
+    $(this).text(txt);
+  });
+});
+</script>
+</head>
+
+<body>
+	<div class="container">
+  		<div class="row justify-content-start">
+    		<div class="col-4">
+      			One of two columns
+    		</div>
+    		<div class="col-4">
+      			One of two columns
+    		</div>
+  		</div>
+  		<div class="row justify-content-center">
+    		<div class="col-4">
+      			One of two columns
+    		</div>
+    		<div class="col-4">
+      			One of two columns
+		    </div>
+  		</div>
+  		<div class="row justify-content-end">
+    		<div class="col-4">
+      			One of two columns
+    		</div>
+    		<div class="col-4">
+      			One of two columns
+    		</div>
+  		</div>
+  		<div class="row justify-content-around">
+    		<div class="col-4">
+      			One of two columns
+    		</div>
+    		<div class="col-4">
+      			One of two columns
+    		</div>
+  		</div>
+  		<div class="row justify-content-between">
+    		<div class="col-4">
+      			One of two columns
+    		</div>
+    		<div class="col-4">
+      			<p>One of two columns</p>
+    		</div>
+  		</div>
+	</div>
+
+</body>
+
+
+</html>

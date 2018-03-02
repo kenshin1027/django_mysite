@@ -1,5 +1,6 @@
-{% load static %}
-<link rel="stylesheet" type="text/css" href="{% static 'mylibrary/style.css' %}" />
+{% load staticfiles %}
+<link rel="stylesheet" type="text/css" href="{% static 'mylibrary/style1.css' %}" />
+
 {% if latest_book_list %}
 <ul>
 {% for book in latest_book_list %}

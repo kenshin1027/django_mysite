@@ -123,6 +123,7 @@ def login(request):
     lf = LoginForm()
     if request.method == 'POST':
         user_input = LoginForm(request.POST)
+        print(user_input)
         if user_input.is_valid():
             username = user_input.cleaned_data['username']
             password = user_input.cleaned_data['password']
