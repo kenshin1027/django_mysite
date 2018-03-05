@@ -20,6 +20,6 @@ urlpatterns = [
     path('polls/', include('polls.urls')),
     path('admin/', admin.site.urls),
     path('mylibrary/', include('mylibrary.urls')),
-    path(r'^captcha/', include('captcha.urls')),
+    path('captcha/', include('captcha.urls')),
     path('',show_homepage),
 ]

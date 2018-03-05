@@ -1,31 +1,38 @@
 <!DOCTYPE html>
-
-<head>
-  <meta charset="utf-8">
-  <link rel="stylesheet" href="http://cdn.static.runoob.com/libs/bootstrap/3.3.7/css/bootstrap.min.css">  
-  <script src="http://cdn.static.runoob.com/libs/jquery/2.1.1/jquery.min.js"></script>
-  <script src="http://cdn.static.runoob.com/libs/bootstrap/3.3.7/js/bootstrap.min.js"></script>
-  <script src="http://static.runoob.com/assets/jquery-validation-1.14.0/dist/jquery.validate.min.js"></script>
-  <script src="http://static.runoob.com/assets/jquery-validation-1.14.0/dist/localization/messages_zh.js"></script>
-  <title>登陆</title>
-<!-- <meta name="description" content="">
-<meta name="keywords" content="">
-<link href="" rel="stylesheet"> -->
-<style type="text/css">
-  body{margin:0;padding: 0;}
-  .login{position:relative;margin:80px 400px;padding:50px 20px;width: 750px;height: 360px;border:1px solid #333;}
-  .login legend{font-weight: bold;font-size: 25px;color: green;text-align: center;}
-  .login label{font-family: Microsoft YaHei;display:inline-block;width:130px;text-align: right;}
-/*  .btn{height: 30px;width:100px;padding: 5px;border:0;background-color: #00dddd;font-weight: bold;cursor: pointer;}*/
-  input{height: 20px;width: 130px;}
- 
-</style>
+<head lang="en">
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="http://cdn.static.runoob.com/libs/bootstrap/3.3.7/css/bootstrap.min.css">  
+	<script src="http://cdn.static.runoob.com/libs/jquery/2.1.1/jquery.min.js"></script>
+	<script src="http://cdn.static.runoob.com/libs/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+	<script src = "https://cdn.bootcss.com/jquery-cookie/1.4.1/jquery.cookie.js"></script>
+	<title>登陆</title>
+	<style type="text/css">
+		body,html{
+			height: 100%
+		}
+		.container{
+			height: 100%;
+			background: #F8F8FF;
+		}
+		.row{
+			background: #F8F8FF;
+			margin-bottom: 10px;
+			word-wrap:break-word
+			/*padding:0 0 0 20px;*/
+		}
+		.a{
+			font-size: 12px;
+			color: red;
+		}
+	</style>
 </head>
 
-<body onload="createCode()">
-<div class="login">
+<body>
+  <div class="container">
     <legend>登陆</legend>
-    <form class="bs-example bs-example-form" role="form">
+    <form class="bs-example bs-example-form" role="form" action="/mylibrary/login/" method="POST">
+    	{% csrf_token %}
         <div class="row" style="margin:0px 25px 15px 5px"> 
           <div class="col-lg-4">
             <div class="input-group">
@@ -34,15 +41,13 @@
                   <span class="glyphicon glyphicon-user"></span>
                 </button>
               </span>
-              <input type="text" class="form-control" id="username" placeholder="请输入用户名">
+              <input type="text" class="form-control" id="mobile" name="mobile" placeholder="请输入手机号">
             </div><!-- /input-group -->
           </div><!-- /.col-lg-4 -->
           <div class="col-lg-8">
-            <span id="nametip" style="visibility:hidden; color:red; font-size: 12px;vertical-align:bottom;">用户名不能为空</span>
+            <span id="tips_mobile" style="color:red; font-size: 12px;"></span>
           </div>
-        </div>
-        <row>
-
+        </div><!-- /row -->
         <div class="row" style="margin:0px 25px 25px 5px">
           <div class="col-lg-4">
             <div class="input-group">
@@ -51,73 +56,90 @@
                   <span class="glyphicon glyphicon-lock"></span>
                 </button>
               </span>
-              <input type="password" class="form-control" id="password" placeholder="请输入密码">
+              <input type="password" class="form-control" id="password" name="password" placeholder="请输入密码">
             </div><!-- /input-group -->
           </div><!-- /.col-lg-4 -->
           <div class="col-lg-8">
-            <span id="passwordtip" style="visibility:hidden; color:red; font-size: 12px;vertical-align:bottom;">密码不能为空</span>
+            <span id="tips_password" style="color:red; font-size: 12px;vertical-align:bottom;">{{error}}</span>
           </div>
-        </div>
+        </div><!-- /row -->
 
         <div class="row" style="margin:10px 35px 25px 20px">
-            <button type="submit" class="btn btn-primary">登陆</button>
+            <button id="submit" class="btn btn-primary">登陆</button>
         </div>
 
     </form>
-</div>
+  </div>
 
 <script type="text/javascript">
- 
-  function checkName(name){  //验证name
-    if(name != ""){ //不为空则正确，当然也可以ajax异步获取服务器判断用户名不重复则正确
-      ele.nametip.style.visibility="hidden"
-      return true;
-    }else{ //username不符合
-      ele.nametip.style.visibility="visible";
-      return false;
-    }   
-  }
-  function checkPassw(password){ //验证密码
-    if(password == ""){
-      ele.passwordtip.style.visibility="visible";
-      return false;
-    }else{
-      ele.passwordtip.style.visibility="hidden";
-      return true;
-    }
-  }
+	function isMobile(str){  
+		var myreg=/(^1[3|4|5|7|8]\d{9}$)/;  
+		if (!myreg.test(str)){
+			return false;  
+		}
+			return true;  
+		}
 
-  
-  var ele = { //存放各个input字段及提示信息
-      username: document.getElementById("username"),
-      password: document.getElementById("password"),
-      nametip: document.getElementById("nametip"),
-      passwordtip: document.getElementById("passwordtip"),
-    };
-    ele.username.onblur = function(){
-      checkName(ele.username.value);
-    }
-    ele.password.onblur = function(){
-      checkPassw(ele.password.value);
-    }
- 
-  function check(){  //表单提交则验证开始
-    var ok = false;
-    var nameOk = false;
-    var emailOk = false;
-    var passwOk = false;
-     
-    if(checkName(ele.name.value)){ nameOk = true; }  //验证name
-    if(checkPassw(ele.password.value,ele.R_password.value)){ passwOk = true; } //验证password
-    if(checkEmail(ele.email.value)){ emailOk = true; }  //验证email
- 
-    if(nameOk && passwOk && emailOk){ 
-      alert("Tip: Register Success ..");  //注册成功
-      //return true; 
-    }
-    return false;  //有误，注册失败
-  }
+    $(document).ready(function(){
+		$('#mobile').blur(function() {
+			var mobile = $("#mobile").val();
+			if (!isMobile(mobile)) 
+			{
+				$('#tips_mobile').html('<span style="font-size:12px;color:red">请填写正确的手机号码</span>');
+				return false;
+			}
+			$.ajax({
+				type: 'GET',
+				url:"/mylibrary/checkrepeatmobile",
+				data:{
+					"mobile": mobile,
+				},
+				dataType: 'json',
+				success: function(json) 
+				{
+					var result = json.result;
+					if (result == 0) 
+					{
+		  				$('#tips_mobile').html('<span style="font-size:12px;color:red">号码不存在</font>');
+					}
+				},
+			});
 
+		})
+
+		$('#password').blur(function(){
+			var password=$('#password').val()
+			if (!password.length)
+			{
+				$('#tips_password').html('<span style="font-size:12px;color:red">请输入密码</span>');
+				return false;
+			}
+		})
+
+		$('#mobile').focus(function() {
+			$('#tips_mobile').html('');
+		})
+
+		$('#password').focus(function() {
+			$('#tips_password').html('');
+		})
+		//submit前最后检查一次，不然无法提交
+        $('#submit').click(function(){
+            if(!isMobile($("#mobile").val()))
+            {
+                return false;
+            }
+            var password=$('#password').val()
+            if(!password.length)
+            {
+                console.log('null password');
+                return false;
+            }
+
+
+
+        })
+	})
  
 </script>
 

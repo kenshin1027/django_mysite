@@ -11,9 +11,12 @@ class Reader(models.Model):
         (2, '月卡'),
         (3, '次卡'),
     )
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    # user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User,on_delete=models.CASCADE)
+    nickname = models.CharField(max_length=24,blank=True)
+    book_limit=models.IntegerField(blank=True, default=0)
     birth_year = models.IntegerField(blank=True, default=2000)
-    phone_number = models.CharField(max_length=11, blank=True)
+    
     address = models.CharField(max_length=50, blank=True)
     reader_type = models.IntegerField(choices=READER_TYPE, default=0)
     deposit_amount = models.FloatField(default=0)  # 押金
@@ -51,13 +54,21 @@ class Book(models.Model):
         ('geography', '地理'),
         ('biology', '生物'),
     )
-    name = models.CharField(max_length=30, blank=True)
+    book_id=models.CharField(max_length=13, primary_key=True)
+    bookname = models.CharField(max_length=80, blank=True)
+    series_name=models.CharField(max_length=30,blank=True)
     author = models.CharField(max_length=20, blank=True)
     publisher = models.CharField(max_length=20, blank=True)
+
     language = models.CharField(max_length=2, choices=BOOK_LANGUAGE, default='CN')
     for_age = models.IntegerField(choices=AGE_RANGE, default=1)
     subject = models.CharField(max_length=12, choices=SUBJECTS, default='nature')
 
     def __str__(self):
-        return self.name
+        return self.bookname
+
+
+class SMSCode(models.Model):
+    mobilenumber=models.CharField(max_length=11,blank=False)
+    randomchar=models.CharField(max_length=6,blank=False)
 # Create your models here.

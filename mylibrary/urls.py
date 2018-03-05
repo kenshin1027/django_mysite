@@ -17,6 +17,7 @@ urlpatterns = [
                path('login/', views.login),
                path('register/', views.register),
                path('logout/', views.logout),
-               path('active/', views.active_account),
+               path('sendsms/',views.SendSMSCode),
+               path('checkrepeatmobile/',views.CheckRepeatMobile),
 
 ]
