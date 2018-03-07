@@ -31,7 +31,7 @@
 <body>
     <div class="container">
         <h2>用户注册</h2>
-        <form method = "POST" action="/mylibrary/register/">
+        <form method = "POST" action="/register/">
             {% csrf_token %}
             <div class="form-group form-inline">
                 <label style="padding-left: 15px">手机号:</label>
@@ -58,7 +58,7 @@
             <button type="submit" class="btn btn-primary" id="submit" style="font-size:15px;">注册</button>
         </form>
         <br/>
-        <span>已有账号?<a href="/mylibrary/login/">直接登陆</a></span>
+        <span>已有账号?<a href="/login/">直接登陆</a></span>
     </div>
 
 <script type="text/javascript">
@@ -103,7 +103,7 @@
             }
             $.ajax({
                 type: 'GET',
-                url:"/mylibrary/checkrepeatmobile",
+                url:"/checkrepeatmobile/",
                 data:{
                     "mobile": mobile,
                 },
@@ -194,7 +194,7 @@
 
             $.ajax({
                 type: 'GET',
-                url:"/mylibrary/sendsms",
+                url:"/sendsms",
                 data:{
                     "mobile": mobile,
                 },

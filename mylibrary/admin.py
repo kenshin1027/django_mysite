@@ -31,9 +31,9 @@ class BookAdmin(admin.ModelAdmin):
     #     ('Date information', {'fields': ['pub_date']}),
     # ]
     # inlines = [ChoiceInline]
-    list_display = ('name', 'author', 'for_age', 'language')
-    list_filter = ['name']
-    search_fields = ['name']
+    list_display = ('bookname', 'author', 'for_age', 'language')
+    list_filter = ['bookname']
+    search_fields = ['bookname']
 
 
 admin.site.register(Book, BookAdmin)

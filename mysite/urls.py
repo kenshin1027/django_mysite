@@ -15,11 +15,24 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from mysite.views import show_homepage
+from .views import show_homepage, login,register,forgetpsw,SendSMSCode,CheckRepeatMobile
+from django.contrib.auth.views import logout
 urlpatterns = [
     path('polls/', include('polls.urls')),
     path('admin/', admin.site.urls),
     path('mylibrary/', include('mylibrary.urls')),
-    path('captcha/', include('captcha.urls')),
+    # path('captcha/', include('captcha.urls')),
     path('',show_homepage),
+    path('logout/', logout),
+    path('login/', login),
+    path('register/', register),
+    path('forgetpsw/', forgetpsw),
+    path('sendsms/',SendSMSCode),
+    path('checkrepeatmobile/',CheckRepeatMobile),
 ]
+
+
+
+               
+               
+               

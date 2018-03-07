@@ -5,7 +5,6 @@
 	<link rel="stylesheet" href="http://cdn.static.runoob.com/libs/bootstrap/3.3.7/css/bootstrap.min.css">  
 	<script src="http://cdn.static.runoob.com/libs/jquery/2.1.1/jquery.min.js"></script>
 	<script src="http://cdn.static.runoob.com/libs/bootstrap/3.3.7/js/bootstrap.min.js"></script>
-	<script src = "https://cdn.bootcss.com/jquery-cookie/1.4.1/jquery.cookie.js"></script>
 	<title>登陆</title>
 	<style type="text/css">
 		body,html{
@@ -31,7 +30,7 @@
 <body>
   <div class="container">
     <legend>登陆</legend>
-    <form class="bs-example bs-example-form" role="form" action="/mylibrary/login/" method="POST">
+    <form class="bs-example bs-example-form" role="form" action="/login/" method="POST">
     	{% csrf_token %}
         <div class="row" style="margin:0px 25px 15px 5px"> 
           <div class="col-lg-4">
@@ -67,6 +66,8 @@
         <div class="row" style="margin:10px 35px 25px 20px">
             <button id="submit" class="btn btn-primary">登陆</button>
         </div>
+        <a href="/register/" style="padding-left: 25px">还没有账号?</a>
+        <a href="/forgetpsw/" style="padding-left: 25px">忘记密码</a>
 
     </form>
   </div>
@@ -81,6 +82,9 @@
 		}
 
     $(document).ready(function(){
+    	{% if mobile %}
+    		$('#mobile').val({{mobile}})
+		{% endif %}
 		$('#mobile').blur(function() {
 			var mobile = $("#mobile").val();
 			if (!isMobile(mobile)) 
@@ -90,7 +94,7 @@
 			}
 			$.ajax({
 				type: 'GET',
-				url:"/mylibrary/checkrepeatmobile",
+				url:"/checkrepeatmobile",
 				data:{
 					"mobile": mobile,
 				},

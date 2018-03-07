@@ -48,21 +48,30 @@ class Book(models.Model):
         (5, '13+岁'),
     )
     SUBJECTS = (
-        ('nature', '自然'),
-        ('history', '历史'),
-        ('math', '数学'),
-        ('geography', '地理'),
-        ('biology', '生物'),
+        (1, '自然'),
+        (2, '历史'),
+        (3, '数学'),
+        (4, '地理'),
+        (5, '生物'),
+        (6, '故事/小说'),
+        (7,'其他'),
     )
-    book_id=models.CharField(max_length=13, primary_key=True)
+    book_id=models.CharField(max_length=13)  #ISBN number
     bookname = models.CharField(max_length=80, blank=True)
     series_name=models.CharField(max_length=30,blank=True)
     author = models.CharField(max_length=20, blank=True)
     publisher = models.CharField(max_length=20, blank=True)
-
+    description=models.CharField(max_length=300,blank=True)
+    publish_date=models.DateField(blank=True)
+    record_date=models.DateField(blank=True)   #书录入系统的时间
     language = models.CharField(max_length=2, choices=BOOK_LANGUAGE, default='CN')
     for_age = models.IntegerField(choices=AGE_RANGE, default=1)
-    subject = models.CharField(max_length=12, choices=SUBJECTS, default='nature')
+    subject = models.CharField(max_length=12, choices=SUBJECTS, default=1)
+    pages = models.IntegerField(blank=True)
+    book_count = models.IntegerField(blank=True)  #图书数量
+    image_sm=models.CharField(max_length=40,blank=True)
+    image_bg=models.CharField(max_length=40,blank=True)
+
 
     def __str__(self):
         return self.bookname

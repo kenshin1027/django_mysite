@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<head lang="en">
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="http://cdn.static.runoob.com/libs/bootstrap/3.3.7/css/bootstrap.min.css">  
+	<script src="http://cdn.static.runoob.com/libs/jquery/2.1.1/jquery.min.js"></script>
+	<script src="http://cdn.static.runoob.com/libs/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+	<script src = "https://cdn.bootcss.com/jquery-cookie/1.4.1/jquery.cookie.js"></script>
+	<title>重置密码</title>
+	<style type="text/css">
+		body,html{
+			height: 100%
+		}
+		.container{
+			height: 100%;
+			background: #F8F8FF;
+		}
+		.row{
+			background: #F8F8FF;
+			margin-bottom: 10px;
+			word-wrap:break-word
+			/*padding:0 0 0 20px;*/
+		}
+		.a{
+			font-size: 12px;
+			color: red;
+		}
+	</style>
+</head>
+
+<body>
+  <div class="container">
+    <legend>重置密码</legend>
+    <form method = "POST" action="/forgetpsw/">
+            {% csrf_token %}
+            <div class="form-group form-inline">
+                <label style="padding-left: 15px">手机号:</label>
+                <input type='text' class="form-control" id="mobile" name="mobile" placeholder="请输入手机号">
+                <span id="tips_mobile"></span>
+            </div>
+            <div class="form-group form-inline">
+                <label style="padding-left: 15px">验证码:</label>
+                <input type="text" class="form-control" id="smscode" placeholder="输入验证码" style="width:auto;">
+                <span id="tips_smscode"></span>
+                <input type="button" class="btn btn-default" value="获取短信验证码" id="sendsms"></button>
+                <label id="hidesmscode" style="visibility: hidden;"></label>
+            </div>
+            <button type="submit" class="btn btn-primary" id="submit" style="font-size:15px;">重置</button>
+        </form>
+  </div>
+
+<script type="text/javascript">
+    var init_down_time = 120;
+    var init_intervalDownTimeObj;
+	function isMobile(str){  
+		var myreg=/(^1[3|4|5|7|8]\d{9}$)/;  
+		if (!myreg.test(str)){
+			return false;  
+		}
+			return true;  
+		}
+    function countDownTime(){
+        $('#sendsms').attr("disabled", "true");
+        $('#sendsms').val(""+ init_down_time+"秒后没收到短信重新发送");
+        init_down_time--;
+        if (init_down_time == 0){
+            clearInterval(init_intervalDownTimeObj); 
+            $('#sendsms').removeAttr("disabled");
+            $('#sendsms').val("重新发送");
+            $('#hidesmscode').val("");
+            init_down_time = 60;
+            }
+    }
+    function initGetDownTime(){
+        init_intervalDownTimeObj = setInterval("countDownTime()", 1000);
+    }
+    $(document).ready(function(){
+		$('#mobile').blur(function() {
+			var mobile = $("#mobile").val();
+			if (!isMobile(mobile)) 
+			{
+				$('#tips_mobile').html('<span style="font-size:12px;color:red">请填写正确的手机号码</span>');
+				return false;
+			}
+			$.ajax({
+				type: 'GET',
+				url:"/checkrepeatmobile",
+				data:{
+					"mobile": mobile,
+				},
+				dataType: 'json',
+				success: function(json) 
+				{
+					var result = json.result;
+					if (result == 0) 
+					{
+		  				$('#tips_mobile').html('<span style="font-size:12px;color:red">号码不存在</font>');
+					}
+				},
+			});
+
+		})
+
+
+		$('#mobile').focus(function() {
+			$('#tips_mobile').html('');
+		})
+
+		//submit前最后检查一次，不然无法提交
+        $('#submit').click(function(){
+            if(!isMobile($("#mobile").val()))
+            {
+                return false;
+            }
+            var smscode=$('#smscode').val();
+            if(smscode!=$('#hidesmscode').val())
+            {
+                console.log('smscode wrong');
+                $('#tips_smscode').html('<span style="font-size:12px;color:red">验证码错误</span>');
+                return false;
+            }
+
+
+        })
+        $("#sendsms").click(function()
+        {
+            var mobile = $("#mobile").val();
+            if (!isMobile(mobile)) 
+            {
+                $('#tips_mobile').html('<span style="font-size:12px;color:red">请先填写手机号</span>');
+                return false;
+            }
+
+            $.ajax({
+                type: 'GET',
+                url:"/sendsms",
+                data:{
+                    "mobile": mobile,
+                },
+                dataType: 'json',
+                success: function(json) 
+                {
+                    var result = json.result;
+                    var smscode=json.smscode;
+                    if (result == 0) 
+                    {
+                        initGetDownTime();/*时间倒计时*/
+                        $('#hidesmscode').val(smscode);
+                        $('#tips_mobile').html('<span style="font-size:12px;color:green">验证码发送成功，请注意查收。</font>');
+                    }
+                    else 
+                    {   
+                       $('#tips_mobile').html('<span style="font-size:12px;color:red">发送失败，请检查手机号。</span>');
+                    }
+                },
+            });
+        })
+	})
+ 
+</script>
+
+</body>
+</html>

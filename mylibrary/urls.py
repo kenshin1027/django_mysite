@@ -12,12 +12,7 @@ app_name = 'mylibrary'
 # ]
 
 urlpatterns = [
-               path('bookindex/', views.BookIndexView.as_view(), name='bookindex'),
-               path('<int:pk>/book/', views.BookDetailView.as_view(), name='bookdetail'),
-               path('login/', views.login),
-               path('register/', views.register),
-               path('logout/', views.logout),
-               path('sendsms/',views.SendSMSCode),
-               path('checkrepeatmobile/',views.CheckRepeatMobile),
-
+				path('', views.show_library),
+				path('bookindex/', views.BookIndexView.as_view(), name='bookindex'),
+				path('<int:pk>/book/', views.BookDetailView.as_view(), name='bookdetail'),
 ]
