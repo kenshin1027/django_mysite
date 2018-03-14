@@ -15,7 +15,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from .views import show_homepage, login,register,forgetpsw,SendSMSCode,CheckRepeatMobile
+from .views import show_homepage, login, register, forgetpsw, SendSMSCode, CheckRepeatMobile
 from django.contrib.auth.views import logout
 urlpatterns = [
     path('polls/', include('polls.urls')),
@@ -29,10 +29,4 @@ urlpatterns = [
     path('forgetpsw/', forgetpsw),
     path('sendsms/',SendSMSCode),
     path('checkrepeatmobile/',CheckRepeatMobile),
-]
-
-
-
-               
-               
-               
+    ]

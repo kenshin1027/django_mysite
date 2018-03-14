@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 from django.db import models
 import datetime
+from django.utils import timezone
 from django.contrib.auth.models import User
 
 
@@ -20,8 +21,8 @@ class Reader(models.Model):
     address = models.CharField(max_length=50, blank=True)
     reader_type = models.IntegerField(choices=READER_TYPE, default=0)
     deposit_amount = models.FloatField(default=0)  # 押金
-    register_date = models.DateField(default=datetime.date.today())
-    #default=datetime.date.today()
+    # register_date = models.DateField(default=timezone.now())
+    register_date = models.DateField(auto_now=True)
     expiry_date = models.DateField(default=datetime.date(2000, 1, 1))
 
     def bool_expiry(self):
@@ -32,7 +33,6 @@ class Reader(models.Model):
 
     def __str__(self):
         return User.objects.get(pk=self.user_id).username
-
 
 
 class Book(models.Model):
@@ -56,28 +56,38 @@ class Book(models.Model):
         (6, '故事/小说'),
         (7,'其他'),
     )
-    book_id=models.CharField(max_length=13)  #ISBN number
+    book_id=models.CharField(max_length=13, primary_key=True)  #ISBN number
     bookname = models.CharField(max_length=80, blank=True)
     series_name=models.CharField(max_length=30,blank=True)
     author = models.CharField(max_length=20, blank=True)
     publisher = models.CharField(max_length=20, blank=True)
     description=models.CharField(max_length=300,blank=True)
-    publish_date=models.DateField(blank=True)
-    record_date=models.DateField(blank=True)   #书录入系统的时间
-    language = models.CharField(max_length=2, choices=BOOK_LANGUAGE, default='CN')
+    publish_date=models.DateField(blank=True,null=True)
+    record_date=models.DateField(blank=True,null=True)   #书录入系统的时间
+    language = models.CharField(max_length=2, choices=BOOK_LANGUAGE, default='EN')
     for_age = models.IntegerField(choices=AGE_RANGE, default=1)
-    subject = models.CharField(max_length=12, choices=SUBJECTS, default=1)
-    pages = models.IntegerField(blank=True)
-    book_count = models.IntegerField(blank=True)  #图书数量
-    image_sm=models.CharField(max_length=40,blank=True)
-    image_bg=models.CharField(max_length=40,blank=True)
+    subject = models.IntegerField(choices=SUBJECTS, default=1)
+    pages = models.IntegerField(blank=True,default=0)
+    book_count = models.IntegerField(blank=True,default=1)  #图书数量
+    image_sm=models.CharField(max_length=26,blank=True)
+    image_bg=models.CharField(max_length=28,blank=True)
 
 
     def __str__(self):
         return self.bookname
-
+    def save(self):
+        self.image_sm='images/'+self.book_id+'.jpg'
+        self.image_bg='images/'+self.book_id+'bg.jpg'
+        super().save()
 
 class SMSCode(models.Model):
     mobilenumber=models.CharField(max_length=11,blank=False)
     randomchar=models.CharField(max_length=6,blank=False)
 # Create your models here.
+
+
+class Bookcart(models.Model):
+    user = models.CharField(max_length=13)
+    book_id=models.ForeignKey(Book,on_delete=models.CASCADE)
+    bookname= models.CharField(max_length=80, blank=True)
+    add_time=models.DateField(auto_now=True)

@@ -7,16 +7,17 @@
     <meta name="keywords" content="英文原版绘本,英语绘本,中文绘本,儿童图书馆,线上英语课堂">
     <title>狗蛋书馆</title>
     <link href="https://cdn.bootcss.com/bootstrap/3.3.2/css/bootstrap.min.css" rel="stylesheet">
+    {% load static %}
     <link href="/favicon.ico" rel="icon" type="image/x-icon"/>
-	<script src="https://cdn.bootcss.com/jquery/2.1.3/jquery.min.js"></script>
+	<!-- <script src="https://cdn.bootcss.com/jquery/2.1.3/jquery.min.js"></script> -->
+	<script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
 	<script type="text/javascript" src="https://cdn.bootcss.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
     
 
     <!-- for checkbox multiselect in dropdown menu -->
-	<link rel="stylesheet" href="D:/django_mysite/static/css/bootstrap-multiselect.css" type="text/css"/>
-	<script type="text/javascript" src="D:/django_mysite/static/js/bootstrap-multiselect.js"></script>
+	<link rel="stylesheet" href="{% static 'css/bootstrap-multiselect.css' %}" type="text/css"/>
+	<script type="text/javascript" src="{% static 'js/bootstrap-multiselect.js' %}"></script>
 
-    {% load static %}
     <style type="text/css">
         .navbar .nav > li .dropdown-menu {
         margin: 0;
@@ -24,144 +25,891 @@
         .navbar .nav > li:hover .dropdown-menu {
         display: block;
         }
+
         #footer{
             font-size: 12px;
         }
-	</style>
+        .modal-dialog {  
+    		margin:200px auto;
+/*    		width: 80%;*/
+		} 
 
+	</style>
+	<script type="text/javascript">
+		var filter ={lang:[],age:[],subject:[],pageindex:0};
+		var totalpages;
+
+		function showbooklist(bookitems)
+		{
+			//把前一次显示内容隐藏
+			$('#firstpage').children('div').css({'display':'none'});
+			$('#firstpage').children().css({'border-style':'none'});//隐藏所有边框
+
+			//找到第一个book所在位置
+			var bookitem= $('#firstpage').children('div').first();
+			//把之前库存为0红色字体及隐藏的加入书架链接设置为默认格式
+			$('div>p>span').css({'color':'#000000'});
+			$('div>p>a').css({'visibility':'visible'});
+
+			//给所有book添加这个手机显示格式的类
+			$('#firstpage').children().addClass('col-xs-6'); 
+
+			for (var i=0;i<bookitems.length;i++)
+			{ 
+				//给所有bookitem添加边框
+				bookitem.css({'border-right':'solid','border-width':'1px','border-color':'lightgrey'});
+				bookitem.css({'border-bottom':'solid','border-width':'1px','border-color':'lightgrey'});
+				if (i%32<4)
+					bookitem.css({'border-top':'solid','border-width':'1px','border-color':'lightgrey'});
+				if (i%4==0)
+					bookitem.css({'border-left':'solid','border-width':'1px','border-color':'lightgrey'});
+
+				//设置图片路径,href
+				imgsrc='/static/'+bookitems[i].fields.image_sm;
+				
+				bookitem.children('a').first().children('img').attr('src',imgsrc);
+				var href = '/mylibrary/bookid/'+bookitems[i].fields.image_sm.slice(7,20);
+				// console.log('href:',bookitems[i].fields);
+				bookitem.children('a').first().attr('href',href);
+
+				//根据屏幕大小设置bookname的长度   还有设置书名字体颜色
+				if (window.screen.width<460)
+					bookitem.children('h3').children('a').first().text(bookitems[i].fields.bookname.substring(0,20));
+				else
+					bookitem.children('h3').children('a').first().text(bookitems[i].fields.bookname.substring(0,30));
+				bookitem.children('h3').children('a').first().attr('href',href);
+				bookitem.children('h3').css({'font-size':'18px','color':'#9370DB'});
+
+				//作者
+				bookitem.children('p').first().children('span').first().text(bookitems[i].fields.author);
+				//该书在馆数量
+				bookitem.children('p').first().children('span').last().text('库存:'+bookitems[i].fields.book_count);
+				if (bookitems[i].fields.book_count==0)
+				{
+					bookitem.children('p').first().children('span').last().css({'color':'red'});
+					bookitem.children('p').next().children('a').first().css({'visibility':'hidden'});
+				}
+				//把本书解除隐藏	
+				bookitem.css({'display':'block'});
+
+				bookitem=bookitem.next();
+			}
+			}
+		//页码函数
+		function showpageindex(maxindex)
+		{
+			//隐藏前一次的pangeindex
+			$('.pageindex').css({'display':'none'});
+			//隐藏上下翻动键
+			$('#indexpageup').children().css({'display':'none'});
+			$('#indexpagedown').children().css({'display':'none'});
+			//reset index button bgcolor
+			$('.pageindex').css({'background':'#FFFFFF'});
+
+			var indexitem=$('#indexpageup').next();
+			//重新筛选或者第一次showpageindex默认高亮第一个pageindex=1
+			indexitem.children('a').css({'background':'#8DB6CD'});
+			for (var i=1;i<maxindex+1;i++)
+			{
+				indexitem.children('a').text(i);
+				indexitem.children('a').val(i);
+				indexitem.children('a').css({'display':'inline'});
+				indexitem=indexitem.next();
+			}
+			if (totalpages>maxindex)
+				$('#indexpagedown').children('a').css({'display':'inline'});
+		}
+		//Ajax查询
+		function filter_booklist(filter){
+			console.log(filter);
+			$.ajax({
+				type: 'GET',
+				url:"/mylibrary/filter_booklist",
+				data:{
+					"filter": JSON.stringify(filter),
+				},
+				dataType: 'json',
+				success: function(json) 
+				{
+					var result = json.result;
+					if (result == 0) 
+					{
+						var bookitems =JSON.parse(json.bookitems);
+						var maxindex =JSON.parse(json.maxindex);
+						totalpages=JSON.parse(json.totalpages);
+		  				showbooklist(bookitems);
+		  				if (filter.pageindex==1)  //代表是重新筛选，所以刷新pageindex
+		  					showpageindex(maxindex,totalpages)
+					}
+					else
+					{
+						$('#firstpage').children('div').css({'display':'none'});
+						$('#firstpage').html('没有找到符合条件的书。')
+					}
+				},
+			});
+		}
+		function search_booklist(searchtext){
+			console.log(searchtext);
+			$.ajax({
+				type:'GET',
+				url:'/mylibrary/search_booklist',
+				data:{
+					'searchtext':searchtext,	
+				},
+				dataType:'json',
+				success:function(json)
+				{
+					var result=json.result;
+					if (result==0)
+					{
+						var bookitems =JSON.parse(json.bookitems);
+						var maxindex =JSON.parse(json.maxindex);
+						totalpages=JSON.parse(json.totalpages);	
+						showbooklist(bookitems);
+						showpageindex(maxindex,totalpages);
+					}
+					else
+					{
+						$('#firstpage').children('div').css({'display':'none'});
+						$('#firstpage').html('没有找到符合条件的书。')
+					}	
+
+				},
+			});
+		}
+		$(document).ready(function(){
+			{% if bookitems %}
+				var bookitems ={{bookitems|safe}};
+				var maxindex ={{maxindex}};
+				totalpages={{totalpages}};
+				showbooklist(bookitems);
+				showpageindex(maxindex);
+			{% endif %}
+			//页面内点击pageindex事件
+			$('.pageindex').click(function(){
+				var index=$(this).val();
+				//reset index button bgcolor
+				$('.pageindex').css({'background':'#FFFFFF'});
+				$(this).css({'background':'#8DB6CD'});
+				//hide all displayed bookitem first
+				filter.pageindex=index;
+				filter_booklist(filter)
+			})
+			//下翻页事件
+			$('#indexpagedown').children().click(function(){
+				$('#indexpageup').children().css({'display':'inline'});//显示前翻键
+				$('.pageindex').css({'display':'none'});   //把之前的pageindex全部隐藏
+				$('.pageindex').css({'background':'#FFFFFF'}); //把pageindex的背景取消
+				var indexitem=$('#indexpageup').next();    //找到第一个index
+				var last_index = $('#indexpagedown').prev().children().val();//取得最后一个index的value
+				if (Number(last_index)+5<totalpages)
+					for (i =Number(last_index)+1;i<Number(last_index)+6;i++)
+					{
+						indexitem.children('a').text(i);
+						indexitem.children('a').val(i);
+						indexitem.children('a').css({'display':'inline'});
+						indexitem=indexitem.next();
+					}
+				else
+				{
+					$('#indexpagedown').children().css({'display':'none'}); //后翻键隐藏
+					for (var i =Number(last_index);i<totalpages;i++)
+					{
+						indexitem.children('a').text(i+1);
+						indexitem.children('a').val(i+1);
+						indexitem.children('a').css({'display':'inline'});
+						indexitem=indexitem.next();
+					}
+				}
+			})
+			//上翻页事件
+			$('#indexpageup').children().click(function(){
+				$('#indexpagedown').children().css({'display':'inline'});//显示后翻键
+				$('.pageindex').css({'display':'none'});   //把之前的pageindex全部隐藏
+				$('.pageindex').css({'background':'#FFFFFF'}); //把pageindex的背景取消
+				var indexitem=$('#indexpageup').next();    //找到第一个index
+				var first_index = $('#indexpageup').next().children().val();//取得最后一个index的value
+				for (var i =(Number(first_index)-5);i<first_index;i++)
+				{
+					indexitem.children('a').text(i);
+					indexitem.children('a').val(i);
+					indexitem.children('a').css({'display':'inline'});
+					indexitem=indexitem.next();
+				}
+				if ((Number(first_index)-5)==1){
+					$('#indexpageup').children().css({'display':'none'});
+				}
+
+			})
+			//条件筛选事件
+			$('#lang_filter').change(function(){
+				if ($(this).val()==null)
+				{
+					filter.lang=[]
+				}
+				else
+					filter.lang=$(this).val();
+				filter.pageindex=1;
+				filter_booklist(filter);
+			})
+			$('#age_filter').change(function(){
+				if ($(this).val()==null)
+				{
+					filter.age=[]
+				}
+				else
+				filter.age=$(this).val();
+				filter.pageindex=1;
+				filter_booklist(filter);
+			})
+			$('#subject_filter').change(function(){
+				if ($(this).val()==null)
+				{
+					filter.subject=[]
+				}
+				else
+				filter.subject=$(this).val();
+				filter.pageindex=1;
+				filter_booklist(filter);
+			})
+			//输入框查找
+			$('#searchsubmit').click(function(){
+				var searchtext=$('#searchtext').val();
+				search_booklist(searchtext);
+			})
+			//将书加入借书车
+			$('.addcart').click(function(){
+				var bookid=$(this).parent().parent().children('a').children('img').attr('src').slice(15,28);
+				console.log('bookid:',bookid);
+				$.ajax({
+				type:'GET',
+				url:'/mylibrary/add_bookcart',
+				data:{
+					'bookid':bookid,
+				},
+				dataType:'json',
+				success:function(json)
+				{
+					var result=json.result;
+					if (result==0)
+					{
+					}
+					else
+					{
+
+					}	
+
+				},
+			});
+			})
+		})
+	</script>
+
+</head>
     
 <body>
-<div class="container">
+	<div class="container">
 	<div class="row clearfix">
 		<div class="col-md-12 column">
 			<nav class="navbar navbar-default" role="navigation">
 				<div class="navbar-header">
-					 <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1"> <span class="sr-only">图书分类</span><span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span></button> <a class="navbar-brand" href="#">狗蛋书馆</a>
-				</div>
-				<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-					<ul class="nav navbar-nav">
-						<li>
-					 		<a href="#" style="font-weight: bold;color: #BDB76B">筛选</a>
-						</li>
-					</ul>
-					<form class="navbar-form navbar-left" role="search">
-						<div class="form-group">
-							<input type="text" class="form-control" />
-						</div> <button type="submit" class="btn btn-default">Submit</button>
-					</form>
-					<ul class="nav navbar-nav navbar-right">
-						<li>
-							 <a href="#">Link</a>
-						</li>
-						<li class="dropdown">
-							 <a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown<strong class="caret"></strong></a>
-							<ul class="dropdown-menu">
-								<li>
-									 <a href="#">Action</a>
-								</li>
-								<li>
-									 <a href="#">Another action</a>
-								</li>
-								<li>
-									 <a href="#">Something else here</a>
-								</li>
-								<li class="divider">
-								</li>
-								<li>
-									 <a href="#">Separated link</a>
-								</li>
-							</ul>
-						</li>
-					</ul>
+					 <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1"> <span class="sr-only">Toggle navigation</span><span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span></button> <a class="navbar-brand" href="/">主页</a>
 				</div>
 				
+				<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                    <form class="navbar-form navbar-left" role="search">
+                        <div class="form-group">
+                            <input type="text" class="form-control" id="searchtext" placeholder="输入书名关键字、作者" />
+                        </div> 
+                        <button type="button" class="btn btn-info" id="searchsubmit">找书</button>
+                    </form>
+					<ul class="nav navbar-nav navbar-right">
+                        {% if logout_status %}
+                            <li>
+                                 <a href="/login/">登陆</a>
+
+                            </li>
+                             <li>
+                                <a href="/register">注册账号</a>
+                            </li>
+                        {% endif %}
+
+                        {% if login_status %}
+                            <li>
+                                <a href="/userinfo/" style="color:green; font-size: 18px;">hi, {{user}}</a>
+                            </li>
+                            <li class="dropdown">
+                                 <a href="#" class="dropdown-toggle" data-toggle="dropdown">设置<strong class="caret"></strong></a>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                         <a href="/editprofile/">修改资料</a>
+                                    </li>
+                                    <li>
+                                         <a href="/logout/">注销</a>
+                                    </li>
+    <!--                                 <li class="divider">
+                                    </li>
+                                    <li>
+                                         <a href="#">Separated link</a>
+                                    </li> -->
+                                </ul>
+                            </li>
+                        {% endif %}
+                    </ul>
+				</div>	
 			</nav>
 		</div>
 	</div>
 	<div class="row clearfix">
-		<div class="col-md-4 column">
-			<h2>
-				Heading
-			</h2>
-			<p>
-				Donec id elit non mi porta gravida at eget metus. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec sed odio dui.
-			</p>
-			<p>
-				 <a class="btn" href="#">View details »</a>
-			</p>
-		</div>
-		<div class="col-md-4 column">
-			<h2>
-				Heading
-			</h2>
-			<p>
-				Donec id elit non mi porta gravida at eget metus. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec sed odio dui.
-			</p>
-			<p>
-				 <a class="btn" href="#">View details »</a>
-			</p>
-		</div>
-		<div class="col-md-4 column">
-			<h2>
-				Heading
-			</h2>
-			<p>
-				Donec id elit non mi porta gravida at eget metus. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec sed odio dui.
-			</p>
-			<p>
-				 <a class="btn" href="#">View details »</a>
-			</p>
+		<div class="col-md-12 column">
+			<script type="text/javascript">
+			    $(document).ready(function() {
+			        $('#lang_filter').multiselect({
+			            includeSelectAllOption: false,
+			            enableFiltering: false
+			        });
+		            $('#age_filter').multiselect({
+			            includeSelectAllOption: false,
+			            enableFiltering: false
+			        });
+			        $('#subject_filter').multiselect({
+			            includeSelectAllOption: false,
+			            enableFiltering: false
+			        });
+			    });
+			</script>
+			<form class="form-inline" role="form" style="height:60px;padding-top: 12px;">
+			    <div class="form-group  col-sm-3 col-xs-6 column">
+			        <label class="control-label" style="font-size: 14px;">语言:</label>
+			            <select id="lang_filter" name="multiselect[]" multiple="multiple">
+			                <option value="EN">英文</option>
+			                <option value="CN">中文</option>
+			            </select>
+			    </div>
+			    <div class="form-group col-sm-3  col-xs-6 column">
+			        <label class="control-label" style="font-size: 14px;" >主题:</label>
+			            <select id="subject_filter" name="multiselect[]" multiple="multiple">
+			                <option value="1">自然</option>
+			                <option value="2">历史</option>
+			                <option value="3">数学</option>
+			                <option value="4">地理</option>
+			                <option value="5">生物</option>
+			                <option value="6">故事/小说</option>
+			                <option value="7">其他</option>
+			            </select>
+			    </div>
+			    <div class="form-group col-sm-3 col-xs-6 column">
+			        <label class="control-label" style="font-size: 14px;">年龄:</label>
+			            <select id="age_filter" name="multiselect[]" multiple="multiple">
+			                <option value="1">0~2岁</option>
+			                <option value="2">3~5岁</option>
+			                <option value="3">6~8岁</option>
+			                <option value="4">9~12岁</option>
+			                <option value="5">13岁+</option>
+			            </select>
+			    </div>
+		    </form>
 		</div>
 	</div>
-	<div class="row clearfix" style="float: right;">
+	<div class="row clearfix">
+		<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" >
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×
+						</button>
+					</div>
+					<div class="modal-body" style="text-align: center;">
+					已经将本书放入借书车
+					</div>
+				</div><!-- /.modal-content -->
+			</div><!-- /.modal-dialog -->
+		</div><!-- /.modal -->
+	</div>
+	<!-- 32本书页面模板 -->
+	<div class="row clearfix" id="firstpage">
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		<div class="col-md-3 column bookitem" style="display:none;">
+			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+			<h3>
+				<a href="#" style="font-weight: bold;">书名</a>
+			</h3>
+			<p>
+				<span style="font-size: 12px" id="author"></span>
+				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+			</p>
+			<p>
+				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
+				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+			</p>
+		</div>
+		
+	</div>
+	<div class="row"  style="border-bottom: solid 1px;" >
 		<div class="col-md-12 column" >
-			<ul class="pagination">
+			<ul class="pagination" style="float: right;">
+				<li id="indexpageup">
+					 <a style="display: none;"><<</a>
+				</li>
+
 				<li>
-					 <a href="#">Prev</a>
+					 <a href="#" class="pageindex" name='pageindex' style="display: none;"></a>
 				</li>
 				<li>
-					 <a href="#">1</a>
+					 <a href="#" class="pageindex" name='pageindex' style="display: none;"></a>
 				</li>
 				<li>
-					 <a href="#">2</a>
+					 <a href="#" class="pageindex" name='pageindex' style="display: none;"></a>
 				</li>
 				<li>
-					 <a href="#">3</a>
+					 <a href="#" class="pageindex" name='pageindex' style="display: none;"></a>
 				</li>
 				<li>
-					 <a href="#">4</a>
+					 <a href="#" class="pageindex" name='pageindex' style="display: none;"></a>
 				</li>
-				<li>
-					 <a href="#">5</a>
-				</li>
-				<li>
-					 <a href="#">Next</a>
+				<li id="indexpagedown" >
+					 <a style="display: none;">>></a>
 				</li>
 			</ul>
 		</div>
 	</div>
 </div>
-    <div class="row clearfix" style="padding-top: 20px;" id="footer">
-        <div class="col-md-12">
-            <div class="well well-sm">
-                <div style="text-align:center; font-size: 13px;">
-                    <a href="#">免责声明</a> |<a href="#">关于我们</a>
-                </div>
-	            <div style="text-align:center;">
-	                Lindsey课堂提供的内容仅用于学习和培训，我们不能保证内容一定正确。<br/>
-	                当使用本站时，代表您已接受了本站的使用条款和隐私条款。版权所有，保留一切应有权利。<br/>
-	                Lindsey课堂的所有内容是以学习知识和分享知识为目的，对任何法律问题及风险不承担任何责任。
-	            </div>
-	            <div style="padding-top:10px; text-align: center">
-	                Copyright &copy; 2018 Powered by Lindsey课程 All Rights Reserved.<a href="http://www.miitbeian.gov.cn/" rel="nofollow" target="_blank">xxx备xxxxx号</a>
-	                <br/><span>互联网违法和不良信息举报邮箱：<a href="mailto:cd1029@163.com">cd1029@163.com</a></span>
-	            </div>
-            
-        	</div>
-    	</div>
-	</div>
-</div>
-<!-- <script src="https://apps.bdimg.com/libs/jquery/1.11.3/jquery.min.js"></script>
-<script src="https://apps.bdimg.com/libs/bootstrap/3.3.4/js/bootstrap.min.js"></script> -->
+<script type="text/javascript">
+</script>
+
 </body>
 </html>

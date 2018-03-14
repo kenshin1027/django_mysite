@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, re_path
 from . import views
 app_name = 'mylibrary'
 # urlpatterns = [path('', views.index, name='index'),
@@ -12,7 +12,11 @@ app_name = 'mylibrary'
 # ]
 
 urlpatterns = [
-				path('', views.show_library),
+				path('filter_booklist/', views.fiter_booklist),
+				path('search_booklist/',views.search_booklist),
+				path('add_bookcart/',views.add_bookcart),
 				path('bookindex/', views.BookIndexView.as_view(), name='bookindex'),
-				path('<int:pk>/book/', views.BookDetailView.as_view(), name='bookdetail'),
+				# path('<int:pk>/book/', views.BookDetailView.as_view(), name='bookdetail'),
+				re_path('bookid/(?P<bookid>[0-9]{13})/',views.BookDetail),
+				path('', views.show_library),
 ]
