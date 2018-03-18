@@ -15,7 +15,7 @@ urlpatterns = [
 				path('filter_booklist/', views.fiter_booklist),
 				path('search_booklist/',views.search_booklist),
 				path('add_bookcart/',views.add_bookcart),
-				path('bookindex/', views.BookIndexView.as_view(), name='bookindex'),
+				path('add_storeup/',views.add_storeuup),
 				# path('<int:pk>/book/', views.BookDetailView.as_view(), name='bookdetail'),
 				re_path('bookid/(?P<bookid>[0-9]{13})/',views.BookDetail),
 				path('', views.show_library),

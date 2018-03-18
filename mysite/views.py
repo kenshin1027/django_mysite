@@ -7,7 +7,7 @@ from django.shortcuts import render, HttpResponse
 from django.contrib.auth import authenticate, login as dj_login
 from .sendsms import send_single_sms
 from .settings import SMSCODELENGTH
-import random
+import random,json
 from django.http import JsonResponse
 
 
@@ -28,23 +28,31 @@ def login(request):
 	if request.method == 'POST':
 		username = request.POST.get('mobile')
 		password = request.POST.get('password')
-		if request.user.is_authenticated:
-			print('1  authenticated ')
-		else:
-			print('1 not been authenticated')
 		user = authenticate(username=username, password=password)
 		if user is None:
 			return render(request, 'login.html', {"mobile": username, "error": "密码错误"})
 		# request.session['user_id'] = user.id
 		dj_login(request, user)
-		if request.user.is_authenticated:
-			print('2  authenticated ')
-		else:
-			print('2 not benn authenticated')
 		# return render(request,'homepage.html',{'username':username})
 		return show_homepage(request)
 	else:
 		return render(request, 'login.html')
+
+def loginmodal(request):
+	context={'result':0}
+	username = json.loads(request.POST.get('mobile'))
+	password = json.loads(request.POST.get('password'))
+
+	print("username:%s" % username)
+	print("password:%s" % password)
+	user = authenticate(username=username, password=password)
+	if user is None:
+		context['result']=1
+	else:
+		dj_login(request, user)
+		context['username']=username
+	return JsonResponse(context)
+
 
 
 def show_homepage(request):

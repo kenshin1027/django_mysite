@@ -1,0 +1,15 @@
+.navbar .nav > li .dropdown-menu {
+        margin: 0;
+        }
+.navbar .nav > li:hover .dropdown-menu {
+    display: block;
+}
+#footer{
+    font-size: 12px;
+}
+.modal-dialog {  
+    margin:200px auto;
+    } 
+#loginname,#setmenu,#loginmenu,#registermenu{
+    display: none;
+}

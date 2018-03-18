@@ -1,34 +1,27 @@
-from .models import Book, Bookcart
+from .models import Book, Bookcart, Bookstoreup
 from django.views import generic
 from django.shortcuts import render
 from django.contrib.auth.models import User
-from mysite.settings import BOOKSINPAGE,MAXPAGEINDEX
+from mysite.settings import BOOKSINPAGE,MAXPAGEINDEX,MAXBOOKSINBOOKCART
 from django.http import JsonResponse
 import math, json
 from django.core import serializers
 
 def show_library(request):
-	if request.user.is_authenticated==True:
-		context={'login_status':True, 'user':request.user}
-	else:
-		context={'logout_status':True}
-
+	context={}
 	bookitems=Book.objects.all()
-	if pagations(bookitems):
+	if bookitems.count():
 		context['bookitems'],context['totalpages'],context['maxindex']=pagations(bookitems)
-	
 	return render(request, 'mylibrary/library.html',context)
 
 
 def fiter_booklist(request):
 	context={'result':0}
 	filter=request.GET['filter']
-	print(filter)
 	language_filter=json.loads(filter)['lang']
 	subject_filter=json.loads(filter)['subject']
 	age_filter=json.loads(filter)['age']
 	pageindex=int(json.loads(filter)['pageindex'])
-	
 	if len(language_filter)!=1:
 		language_filter=['CN','EN']
 
@@ -72,15 +65,36 @@ def add_bookcart(request):
 	context={'result':0}
 	if request.user.is_authenticated:
 		bookid=request.GET['bookid']
-		bookitem = Book.objects.get(book_id=bookid)
-		bookitem.bookcart=Bookcart(bookname=bookitem.bookname)
-		new_bookcart =bookitem.bookcart
-		new_bookcart.user=request.user
-		new_bookcart.save()
+		bookcart =Bookcart.objects.filter(user=request.user,book_id=bookid)
+		if bookcart.count()==MAXBOOKSINBOOKCART:
+			context['result']=2
+		if not bookcart:
+			bookitem = Book.objects.get(book_id=bookid)
+			new_bookcart=Bookcart(bookname=bookitem.bookname,book_id=bookitem)
+			new_bookcart.user=request.user
+			new_bookcart.save()
+		else:
+			context={'result':1}
 	else:
-		context['result']=1
+		context['result']=3
 	return JsonResponse(context)
 
+
+def add_storeuup(request):
+	context={'result':0}
+	if request.user.is_authenticated:
+		bookid=request.GET['bookid']
+		bookstoreup =Bookstoreup.objects.filter(user=request.user,book_id=bookid)
+		if not bookstoreup:
+			bookitem=Book.objects.get(book_id=bookid)
+			new_bookstoreup=Bookstoreup(bookname=bookitem.bookname,book_id=bookitem)
+			new_bookstoreup.user=request.user
+			new_bookstoreup.save()
+		else:
+			context['result']=1
+	else:
+		context['result']=2
+	return JsonResponse(context)
 
 def pagations(bookitems):
 	totalbooks=bookitems.count()
@@ -100,26 +114,16 @@ def pagations(bookitems):
 	return False
 
 
-class BookIndexView(generic.ListView):
-    template_name = 'mylibrary/bookindex.html'
-    context_object_name = 'latest_book_list'
-
-    def get_queryset(self):
-        return Book.objects.filter(
-            language='CN'
-        ).order_by('name')
-
-
 def BookDetail(request,bookid):
 	context={}
-	if bookid:
-		try:
-			bookitem = Book.objects.filter(book_id=bookid)
-		except Exception as e:
-			bookitem=None
+	try:
+		bookitem = Book.objects.filter(book_id=bookid)
 		bookitem = serializers.serialize("json", bookitem)
 		context['bookitem']=bookitem
-
+	except Exception as e:
+		bookitem=None
+		context={'error':'不存在这本书'}
+	context['bookid']=bookid
 	return render(request,'mylibrary/bookdetail.html',context)
 
  

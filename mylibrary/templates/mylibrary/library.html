@@ -1,366 +1,362 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="keywords" content="英文原版绘本,英语绘本,中文绘本,儿童图书馆,线上英语课堂">
-    <title>狗蛋书馆</title>
-    <link href="https://cdn.bootcss.com/bootstrap/3.3.2/css/bootstrap.min.css" rel="stylesheet">
-    {% load static %}
-    <link href="/favicon.ico" rel="icon" type="image/x-icon"/>
-	<!-- <script src="https://cdn.bootcss.com/jquery/2.1.3/jquery.min.js"></script> -->
-	<script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
-	<script type="text/javascript" src="https://cdn.bootcss.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
-    
+{% extends "base.html" %}
+{% block keywords %}
+<meta name="keywords" content="英文原版绘本,英语绘本,中文绘本,儿童图书馆,线上英语课堂">
+{% endblock %}
 
-    <!-- for checkbox multiselect in dropdown menu -->
-	<link rel="stylesheet" href="{% static 'css/bootstrap-multiselect.css' %}" type="text/css"/>
-	<script type="text/javascript" src="{% static 'js/bootstrap-multiselect.js' %}"></script>
+{% block title%}狗蛋书馆{% endblock %}
+{% load static %}
+  
 
-    <style type="text/css">
-        .navbar .nav > li .dropdown-menu {
-        margin: 0;
-        }
-        .navbar .nav > li:hover .dropdown-menu {
-        display: block;
-        }
+{% block otherlink %}
+<!-- for checkbox multiselect in dropdown menu -->
+<link rel="stylesheet" href="{% static 'css/bootstrap-multiselect.css' %}" type="text/css"/>
+<script type="text/javascript" src="{% static 'js/bootstrap-multiselect.js' %}"></script>
+{% endblock %}
 
-        #footer{
-            font-size: 12px;
-        }
-        .modal-dialog {  
-    		margin:200px auto;
-/*    		width: 80%;*/
-		} 
 
-	</style>
-	<script type="text/javascript">
-		var filter ={lang:[],age:[],subject:[],pageindex:0};
-		var totalpages;
+<script type="text/javascript">
+	{% block jscode %}
+	var filter ={lang:[],age:[],subject:[],pageindex:0};
+	var totalpages;
 
-		function showbooklist(bookitems)
+	function isMobile(str){  
+	var myreg=/(^1[3|4|5|7|8]\d{9}$)/;  
+	if (!myreg.test(str)){
+		return false;  
+	}
+		return true;  
+	}
+
+	//显示book
+	function showbooklist(bookitems)
+	{
+		//把前一次显示内容隐藏
+		$('#firstpage').children('div').css({'display':'none'});
+		$('#firstpage').children().css({'border-style':'none'});//隐藏所有边框
+
+		//找到第一个book所在位置
+		var bookitem= $('#firstpage').children('div').first();
+		//把之前库存为0红色字体及隐藏的加入书架链接设置为默认格式
+		$('div>p>span').css({'color':'#000000'});
+		$('div>p>a').css({'visibility':'visible'});
+
+		//给所有book添加这个手机显示格式的类
+		$('#firstpage').children().addClass('col-xs-6'); 
+
+		for (var i=0;i<bookitems.length;i++)
+		{ 
+			//给所有bookitem添加边框
+			bookitem.css({'border-right':'solid','border-width':'1px','border-color':'lightgrey'});
+			bookitem.css({'border-bottom':'solid','border-width':'1px','border-color':'lightgrey'});
+			if (i%32<4)
+				bookitem.css({'border-top':'solid','border-width':'1px','border-color':'lightgrey'});
+			if (i%4==0)
+				bookitem.css({'border-left':'solid','border-width':'1px','border-color':'lightgrey'});
+
+			//设置图片路径,href
+			imgsrc='/static/'+bookitems[i].fields.image_sm;
+			
+			bookitem.children('a').first().children('img').attr('src',imgsrc);
+			var href = '/mylibrary/bookid/'+bookitems[i].fields.image_sm.slice(7,20);
+			bookitem.children('a').first().attr('href',href);
+
+			//根据屏幕大小设置bookname的长度   还有设置书名字体颜色
+			if (window.screen.width<460)
+			{
+				bookitem.children('h3').children('a').first().text(bookitems[i].fields.bookname.substring(0,18));
+				bookitem.children('p').first().children('span').first().text(bookitems[i].fields.author.substring(0,18));
+			}	
+			else
+			{
+				bookitem.children('h3').children('a').first().text(bookitems[i].fields.bookname.substring(0,30));
+				bookitem.children('p').first().children('span').first().text(bookitems[i].fields.author.substring(0,24));
+			}
+			bookitem.children('h3').children('a').first().attr('href',href);
+			bookitem.children('h3').css({'font-size':'18px','color':'#9370DB'});
+
+			
+			
+			//该书在馆数量
+			bookitem.children('p').first().children('span').last().text('库存:'+bookitems[i].fields.book_count);
+			if (bookitems[i].fields.book_count==0)
+			{
+				bookitem.children('p').first().children('span').last().css({'color':'red'});
+				bookitem.children('p').next().children('a').first().css({'visibility':'hidden'});
+			}
+			//把本书解除隐藏	
+			bookitem.css({'display':'block'});
+
+			bookitem=bookitem.next();
+		}
+		}
+	//显示页码函数
+	function showpageindex(maxindex)
+	{
+		//隐藏前一次的pangeindex
+		$('.pageindex').css({'display':'none'});
+		//隐藏上下翻动键
+		$('#indexpageup').children().css({'display':'none'});
+		$('#indexpagedown').children().css({'display':'none'});
+		//reset index button bgcolor
+		$('.pageindex').css({'background':'#FFFFFF'});
+
+		var indexitem=$('#indexpageup').next();
+		//重新筛选或者第一次showpageindex默认高亮第一个pageindex=1
+		indexitem.children('a').css({'background':'#8DB6CD'});
+		for (var i=1;i<maxindex+1;i++)
 		{
-			//把前一次显示内容隐藏
-			$('#firstpage').children('div').css({'display':'none'});
-			$('#firstpage').children().css({'border-style':'none'});//隐藏所有边框
-
-			//找到第一个book所在位置
-			var bookitem= $('#firstpage').children('div').first();
-			//把之前库存为0红色字体及隐藏的加入书架链接设置为默认格式
-			$('div>p>span').css({'color':'#000000'});
-			$('div>p>a').css({'visibility':'visible'});
-
-			//给所有book添加这个手机显示格式的类
-			$('#firstpage').children().addClass('col-xs-6'); 
-
-			for (var i=0;i<bookitems.length;i++)
-			{ 
-				//给所有bookitem添加边框
-				bookitem.css({'border-right':'solid','border-width':'1px','border-color':'lightgrey'});
-				bookitem.css({'border-bottom':'solid','border-width':'1px','border-color':'lightgrey'});
-				if (i%32<4)
-					bookitem.css({'border-top':'solid','border-width':'1px','border-color':'lightgrey'});
-				if (i%4==0)
-					bookitem.css({'border-left':'solid','border-width':'1px','border-color':'lightgrey'});
-
-				//设置图片路径,href
-				imgsrc='/static/'+bookitems[i].fields.image_sm;
-				
-				bookitem.children('a').first().children('img').attr('src',imgsrc);
-				var href = '/mylibrary/bookid/'+bookitems[i].fields.image_sm.slice(7,20);
-				// console.log('href:',bookitems[i].fields);
-				bookitem.children('a').first().attr('href',href);
-
-				//根据屏幕大小设置bookname的长度   还有设置书名字体颜色
-				if (window.screen.width<460)
-					bookitem.children('h3').children('a').first().text(bookitems[i].fields.bookname.substring(0,20));
-				else
-					bookitem.children('h3').children('a').first().text(bookitems[i].fields.bookname.substring(0,30));
-				bookitem.children('h3').children('a').first().attr('href',href);
-				bookitem.children('h3').css({'font-size':'18px','color':'#9370DB'});
-
-				//作者
-				bookitem.children('p').first().children('span').first().text(bookitems[i].fields.author);
-				//该书在馆数量
-				bookitem.children('p').first().children('span').last().text('库存:'+bookitems[i].fields.book_count);
-				if (bookitems[i].fields.book_count==0)
+			indexitem.children('a').text(i);
+			indexitem.children('a').val(i);
+			indexitem.children('a').css({'display':'inline'});
+			indexitem=indexitem.next();
+		}
+		if (totalpages>maxindex)
+			$('#indexpagedown').children('a').css({'display':'inline'});
+	}
+	//条件筛选函数
+	function filter_booklist(filter){
+		$.ajax({
+			type: 'GET',
+			url:"/mylibrary/filter_booklist",
+			data:{
+				"filter": JSON.stringify(filter),
+			},
+			dataType: 'json',
+			success: function(json) 
+			{
+				var result = json.result;
+				if (result == 0) 
 				{
-					bookitem.children('p').first().children('span').last().css({'color':'red'});
-					bookitem.children('p').next().children('a').first().css({'visibility':'hidden'});
+					var bookitems =JSON.parse(json.bookitems);
+					var maxindex =JSON.parse(json.maxindex);
+					totalpages=JSON.parse(json.totalpages);
+	  				showbooklist(bookitems);
+	  				if (filter.pageindex==1)  //代表是重新筛选，所以刷新pageindex
+	  					showpageindex(maxindex,totalpages)
 				}
-				//把本书解除隐藏	
-				bookitem.css({'display':'block'});
+				else
+				{
+					$('#firstpage').children('div').css({'display':'none'});
+					$('#firstpage').html('没有找到符合条件的书。')
+				}
+			},
+		});
+	}
+	//输入框查找函数
+	function search_booklist(searchtext){
+		$.ajax({
+			type:'GET',
+			url:'/mylibrary/search_booklist',
+			data:{
+				'searchtext':searchtext,	
+			},
+			dataType:'json',
+			success:function(json)
+			{
+				var result=json.result;
+				if (result==0)
+				{
+					var bookitems =JSON.parse(json.bookitems);
+					var maxindex =JSON.parse(json.maxindex);
+					totalpages=JSON.parse(json.totalpages);	
+					showbooklist(bookitems);
+					showpageindex(maxindex,totalpages);
+				}
+				else
+				{
+					$('#firstpage').children('div').css({'display':'none'});
+					$('#firstpage').html('没有找到符合条件的书。')
+				}	
 
-				bookitem=bookitem.next();
-			}
-			}
-		//页码函数
-		function showpageindex(maxindex)
-		{
-			//隐藏前一次的pangeindex
-			$('.pageindex').css({'display':'none'});
-			//隐藏上下翻动键
-			$('#indexpageup').children().css({'display':'none'});
-			$('#indexpagedown').children().css({'display':'none'});
+			},
+		});
+	}
+	$(document).ready(function(){
+		{% if bookitems %}
+			var bookitems ={{bookitems|safe}};
+			var maxindex ={{maxindex}};
+			totalpages={{totalpages}};
+			showbooklist(bookitems);
+			showpageindex(maxindex);
+		{% endif %}
+
+        
+		//翻页区域
+			//页面内点击pageindex事件
+		$('.pageindex').click(function(){
+			var index=$(this).val();
 			//reset index button bgcolor
 			$('.pageindex').css({'background':'#FFFFFF'});
-
-			var indexitem=$('#indexpageup').next();
-			//重新筛选或者第一次showpageindex默认高亮第一个pageindex=1
-			indexitem.children('a').css({'background':'#8DB6CD'});
-			for (var i=1;i<maxindex+1;i++)
-			{
-				indexitem.children('a').text(i);
-				indexitem.children('a').val(i);
-				indexitem.children('a').css({'display':'inline'});
-				indexitem=indexitem.next();
-			}
-			if (totalpages>maxindex)
-				$('#indexpagedown').children('a').css({'display':'inline'});
-		}
-		//Ajax查询
-		function filter_booklist(filter){
-			console.log(filter);
-			$.ajax({
-				type: 'GET',
-				url:"/mylibrary/filter_booklist",
-				data:{
-					"filter": JSON.stringify(filter),
-				},
-				dataType: 'json',
-				success: function(json) 
-				{
-					var result = json.result;
-					if (result == 0) 
-					{
-						var bookitems =JSON.parse(json.bookitems);
-						var maxindex =JSON.parse(json.maxindex);
-						totalpages=JSON.parse(json.totalpages);
-		  				showbooklist(bookitems);
-		  				if (filter.pageindex==1)  //代表是重新筛选，所以刷新pageindex
-		  					showpageindex(maxindex,totalpages)
-					}
-					else
-					{
-						$('#firstpage').children('div').css({'display':'none'});
-						$('#firstpage').html('没有找到符合条件的书。')
-					}
-				},
-			});
-		}
-		function search_booklist(searchtext){
-			console.log(searchtext);
-			$.ajax({
-				type:'GET',
-				url:'/mylibrary/search_booklist',
-				data:{
-					'searchtext':searchtext,	
-				},
-				dataType:'json',
-				success:function(json)
-				{
-					var result=json.result;
-					if (result==0)
-					{
-						var bookitems =JSON.parse(json.bookitems);
-						var maxindex =JSON.parse(json.maxindex);
-						totalpages=JSON.parse(json.totalpages);	
-						showbooklist(bookitems);
-						showpageindex(maxindex,totalpages);
-					}
-					else
-					{
-						$('#firstpage').children('div').css({'display':'none'});
-						$('#firstpage').html('没有找到符合条件的书。')
-					}	
-
-				},
-			});
-		}
-		$(document).ready(function(){
-			{% if bookitems %}
-				var bookitems ={{bookitems|safe}};
-				var maxindex ={{maxindex}};
-				totalpages={{totalpages}};
-				showbooklist(bookitems);
-				showpageindex(maxindex);
-			{% endif %}
-			//页面内点击pageindex事件
-			$('.pageindex').click(function(){
-				var index=$(this).val();
-				//reset index button bgcolor
-				$('.pageindex').css({'background':'#FFFFFF'});
-				$(this).css({'background':'#8DB6CD'});
-				//hide all displayed bookitem first
-				filter.pageindex=index;
-				filter_booklist(filter)
-			})
+			$(this).css({'background':'#8DB6CD'});
+			//hide all displayed bookitem first
+			filter.pageindex=index;
+			filter_booklist(filter)
+		})
 			//下翻页事件
-			$('#indexpagedown').children().click(function(){
-				$('#indexpageup').children().css({'display':'inline'});//显示前翻键
-				$('.pageindex').css({'display':'none'});   //把之前的pageindex全部隐藏
-				$('.pageindex').css({'background':'#FFFFFF'}); //把pageindex的背景取消
-				var indexitem=$('#indexpageup').next();    //找到第一个index
-				var last_index = $('#indexpagedown').prev().children().val();//取得最后一个index的value
-				if (Number(last_index)+5<totalpages)
-					for (i =Number(last_index)+1;i<Number(last_index)+6;i++)
-					{
-						indexitem.children('a').text(i);
-						indexitem.children('a').val(i);
-						indexitem.children('a').css({'display':'inline'});
-						indexitem=indexitem.next();
-					}
-				else
-				{
-					$('#indexpagedown').children().css({'display':'none'}); //后翻键隐藏
-					for (var i =Number(last_index);i<totalpages;i++)
-					{
-						indexitem.children('a').text(i+1);
-						indexitem.children('a').val(i+1);
-						indexitem.children('a').css({'display':'inline'});
-						indexitem=indexitem.next();
-					}
-				}
-			})
-			//上翻页事件
-			$('#indexpageup').children().click(function(){
-				$('#indexpagedown').children().css({'display':'inline'});//显示后翻键
-				$('.pageindex').css({'display':'none'});   //把之前的pageindex全部隐藏
-				$('.pageindex').css({'background':'#FFFFFF'}); //把pageindex的背景取消
-				var indexitem=$('#indexpageup').next();    //找到第一个index
-				var first_index = $('#indexpageup').next().children().val();//取得最后一个index的value
-				for (var i =(Number(first_index)-5);i<first_index;i++)
+		$('#indexpagedown').children().click(function(){
+			$('#indexpageup').children().css({'display':'inline'});//显示前翻键
+			$('.pageindex').css({'display':'none'});   //把之前的pageindex全部隐藏
+			$('.pageindex').css({'background':'#FFFFFF'}); //把pageindex的背景取消
+			var indexitem=$('#indexpageup').next();    //找到第一个index
+			var last_index = $('#indexpagedown').prev().children().val();//取得最后一个index的value
+			if (Number(last_index)+5<totalpages)
+				for (i =Number(last_index)+1;i<Number(last_index)+6;i++)
 				{
 					indexitem.children('a').text(i);
 					indexitem.children('a').val(i);
 					indexitem.children('a').css({'display':'inline'});
 					indexitem=indexitem.next();
 				}
-				if ((Number(first_index)-5)==1){
-					$('#indexpageup').children().css({'display':'none'});
-				}
-
-			})
-			//条件筛选事件
-			$('#lang_filter').change(function(){
-				if ($(this).val()==null)
+			else
+			{
+				$('#indexpagedown').children().css({'display':'none'}); //后翻键隐藏
+				for (var i =Number(last_index);i<totalpages;i++)
 				{
-					filter.lang=[]
+					indexitem.children('a').text(i+1);
+					indexitem.children('a').val(i+1);
+					indexitem.children('a').css({'display':'inline'});
+					indexitem=indexitem.next();
 				}
-				else
-					filter.lang=$(this).val();
-				filter.pageindex=1;
-				filter_booklist(filter);
-			})
-			$('#age_filter').change(function(){
-				if ($(this).val()==null)
-				{
-					filter.age=[]
-				}
-				else
-				filter.age=$(this).val();
-				filter.pageindex=1;
-				filter_booklist(filter);
-			})
-			$('#subject_filter').change(function(){
-				if ($(this).val()==null)
-				{
-					filter.subject=[]
-				}
-				else
-				filter.subject=$(this).val();
-				filter.pageindex=1;
-				filter_booklist(filter);
-			})
-			//输入框查找
-			$('#searchsubmit').click(function(){
-				var searchtext=$('#searchtext').val();
-				search_booklist(searchtext);
-			})
-			//将书加入借书车
-			$('.addcart').click(function(){
-				var bookid=$(this).parent().parent().children('a').children('img').attr('src').slice(15,28);
-				console.log('bookid:',bookid);
-				$.ajax({
-				type:'GET',
-				url:'/mylibrary/add_bookcart',
-				data:{
-					'bookid':bookid,
-				},
-				dataType:'json',
-				success:function(json)
-				{
-					var result=json.result;
-					if (result==0)
-					{
-					}
-					else
-					{
-
-					}	
-
-				},
-			});
-			})
+			}
 		})
-	</script>
+			//上翻页事件
+		$('#indexpageup').children().click(function(){
+			$('#indexpagedown').children().css({'display':'inline'});//显示后翻键
+			$('.pageindex').css({'display':'none'});   //把之前的pageindex全部隐藏
+			$('.pageindex').css({'background':'#FFFFFF'}); //把pageindex的背景取消
+			var indexitem=$('#indexpageup').next();    //找到第一个index
+			var first_index = $('#indexpageup').next().children().val();//取得最后一个index的value
+			for (var i =(Number(first_index)-5);i<first_index;i++)
+			{
+				indexitem.children('a').text(i);
+				indexitem.children('a').val(i);
+				indexitem.children('a').css({'display':'inline'});
+				indexitem=indexitem.next();
+			}
+			if ((Number(first_index)-5)==1){
+				$('#indexpageup').children().css({'display':'none'});
+			}
 
-</head>
+		})
+		//找书筛选区域
+		$('#lang_filter').change(function(){
+			if ($(this).val()==null)
+			{
+				filter.lang=[]
+			}
+			else
+				filter.lang=$(this).val();
+			filter.pageindex=1;
+			filter_booklist(filter);
+		})
+		$('#age_filter').change(function(){
+			if ($(this).val()==null)
+			{
+				filter.age=[]
+			}
+			else
+			filter.age=$(this).val();
+			filter.pageindex=1;
+			filter_booklist(filter);
+		})
+		$('#subject_filter').change(function(){
+			if ($(this).val()==null)
+			{
+				filter.subject=[]
+			}
+			else
+			filter.subject=$(this).val();
+			filter.pageindex=1;
+			filter_booklist(filter);
+		})
+		//输入框查找
+		$('#searchsubmit').click(function(){
+			var searchtext=$('#searchtext').val();
+			if (searchtext.length==0)
+				return;
+			search_booklist(searchtext);
+		})
+		//将书加入借书车
+		$('.addcart').click(function(){
+			var bookid=$(this).parent().parent().children('a').children('img').attr('src').slice(15,28);
+			$.ajax({
+			type:'GET',
+			url:'/mylibrary/add_bookcart',
+			data:{
+				'bookid':bookid,
+			},
+			dataType:'json',
+			success:function(json)
+			{
+				var result=json.result;
+				if (result==0)
+				{
+					$('#poptips').text('ok,已经将本书放进您的借书车');
+					$('#myModal').modal('show');
+				}
+				else if (result==1)
+				{
+					$('#poptips').text('该书已经在您的借书车中了喔');
+					$('#myModal').modal('show');
+				}
+				else if(result==2)
+				{
+					$('#poptips').text('抱歉，您的借书车上的书太多了，请清理一些或转入藏书车');
+					$('#myModal').modal('show');
+				}
+				else
+					$('#loginmodal').modal('show');				
+			}
+		});
+		})
+
+		//将书放入收藏
+		$('.storeup').click(function(){
+			var bookid=$(this).parent().parent().children('a').children('img').attr('src').slice(15,28);
+			$.ajax({
+			type:'GET',
+			url:'/mylibrary/add_storeup',
+			data:{
+				'bookid':bookid,
+			},
+			dataType:'json',
+			success:function(json)
+			{
+				var result=json.result;
+				if (result==0)
+				{
+					$('#poptips').text('ok,已经将本书收藏');
+					$('#myModal').modal('show');
+				}
+				else if (result==1)
+				{
+					$('#poptips').text('该书已经在您的收藏单中了喔');
+					$('#myModal').modal('show');
+				}
+				else
+					$('#loginmodal').modal('show');				
+			}
+		});
+		})
+	})
+{% endblock %}
+</script>
+
     
-<body>
-	<div class="container">
-	<div class="row clearfix">
-		<div class="col-md-12 column">
-			<nav class="navbar navbar-default" role="navigation">
-				<div class="navbar-header">
-					 <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1"> <span class="sr-only">Toggle navigation</span><span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span></button> <a class="navbar-brand" href="/">主页</a>
-				</div>
+
 				
-				<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-                    <form class="navbar-form navbar-left" role="search">
-                        <div class="form-group">
-                            <input type="text" class="form-control" id="searchtext" placeholder="输入书名关键字、作者" />
-                        </div> 
-                        <button type="button" class="btn btn-info" id="searchsubmit">找书</button>
-                    </form>
-					<ul class="nav navbar-nav navbar-right">
-                        {% if logout_status %}
-                            <li>
-                                 <a href="/login/">登陆</a>
+			
+{% block search %}
+	<form class="navbar-form navbar-left" role="search">
+		<div class="form-group">
+		    <input type="text" class="form-control" id="searchtext" placeholder="输入书名关键字、作者" />
+		</div> 
+		<button type="button" class="btn btn-info" id="searchsubmit">找书</button>
+	</form>
+{% endblock%}
 
-                            </li>
-                             <li>
-                                <a href="/register">注册账号</a>
-                            </li>
-                        {% endif %}
-
-                        {% if login_status %}
-                            <li>
-                                <a href="/userinfo/" style="color:green; font-size: 18px;">hi, {{user}}</a>
-                            </li>
-                            <li class="dropdown">
-                                 <a href="#" class="dropdown-toggle" data-toggle="dropdown">设置<strong class="caret"></strong></a>
-                                <ul class="dropdown-menu">
-                                    <li>
-                                         <a href="/editprofile/">修改资料</a>
-                                    </li>
-                                    <li>
-                                         <a href="/logout/">注销</a>
-                                    </li>
-    <!--                                 <li class="divider">
-                                    </li>
-                                    <li>
-                                         <a href="#">Separated link</a>
-                                    </li> -->
-                                </ul>
-                            </li>
-                        {% endif %}
-                    </ul>
-				</div>	
-			</nav>
-		</div>
-	</div>
+{% block filter %}			
+	<!--条件筛选区域-->
 	<div class="row clearfix">
 		<div class="col-md-12 column">
 			<script type="text/javascript">
@@ -412,22 +408,10 @@
 		    </form>
 		</div>
 	</div>
-	<div class="row clearfix">
-		<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" >
-			<div class="modal-dialog">
-				<div class="modal-content">
-					<div class="modal-header">
-						<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×
-						</button>
-					</div>
-					<div class="modal-body" style="text-align: center;">
-					已经将本书放入借书车
-					</div>
-				</div><!-- /.modal-content -->
-			</div><!-- /.modal-dialog -->
-		</div><!-- /.modal -->
-	</div>
-	<!-- 32本书页面模板 -->
+{% endblock %}
+
+	<!-- 32本书页面模板区域 -->
+	{% block content %}
 	<div class="row clearfix" id="firstpage">
 		<div class="col-md-3 column bookitem" style="display:none;">
 			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
@@ -439,8 +423,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -453,8 +437,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -467,8 +451,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -481,8 +465,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -495,8 +479,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -509,8 +493,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -523,8 +507,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -537,8 +521,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -551,8 +535,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -565,8 +549,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -579,8 +563,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -593,8 +577,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -607,8 +591,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -621,8 +605,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -635,8 +619,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -649,8 +633,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -663,8 +647,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -677,8 +661,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -691,8 +675,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -705,8 +689,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -719,8 +703,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -733,8 +717,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -747,8 +731,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -761,8 +745,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -775,8 +759,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -789,8 +773,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -803,8 +787,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -817,8 +801,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -831,8 +815,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -845,8 +829,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -859,8 +843,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		<div class="col-md-3 column bookitem" style="display:none;">
@@ -873,8 +857,8 @@
 				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
 			</p>
 			<p>
-				<a class="btn-sm btn-primary addcart" data-toggle="modal" data-target="#myModal" href="#">加入借书架</a>
-				<a class="btn-sm btn-success storeup" data-toggle="modal" data-target="#myModal" href="#">收藏</a>
+				<button class="btn-sm btn-primary addcart">加入借书架</button>
+				<button class="btn-sm btn-success storeup">收藏</button>
 			</p>
 		</div>
 		
@@ -908,8 +892,4 @@
 		</div>
 	</div>
 </div>
-<script type="text/javascript">
-</script>
-
-</body>
-</html>
+{% endblock %}

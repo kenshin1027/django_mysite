@@ -1,0 +1,43 @@
+.navbar .nav > li .dropdown-menu {
+margin: 0;
+}
+.navbar .nav > li:hover .dropdown-menu {
+display: block;
+}
+
+/*div {
+    border-style: solid;
+    border-width: 1px;
+}*/
+.col-md-7{
+    word-wrap:break-word;
+    line-height: 14px;
+}
+.col-md-7 div{
+    font-size: 13px;
+    margin-left: 5px;
+}
+.col-md-7 div p{
+    color:#696969;    
+}
+.col-md-7 div p span{
+    color: black;
+}
+.intro{
+    margin-top:15px;
+}
+.intro div{
+    font-size:18px;color:green;
+    margin-left:5px;
+}
+.intro_content{
+    font-size:13px;
+    color: black;
+}
+#loginname{
+    color: green;
+    font-size: 18px;
+}
+#loginname,#setmenu,#loginmenu,#registermenu{
+    display: none;
+}
