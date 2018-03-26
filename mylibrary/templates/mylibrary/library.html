@@ -1,37 +1,47 @@
 {% extends "base.html" %}
+{% load static %}
+
 {% block keywords %}
 <meta name="keywords" content="英文原版绘本,英语绘本,中文绘本,儿童图书馆,线上英语课堂">
 {% endblock %}
 
 {% block title%}狗蛋书馆{% endblock %}
 {% load static %}
-  
-
 {% block otherlink %}
-<!-- for checkbox multiselect in dropdown menu -->
-<link rel="stylesheet" href="{% static 'css/bootstrap-multiselect.css' %}" type="text/css"/>
-<script type="text/javascript" src="{% static 'js/bootstrap-multiselect.js' %}"></script>
+<link rel="stylesheet" href="{% static 'css/library.css' %}" type="text/css"/>
+<script type="text/javascript" src="{% static 'js/myjs.js' %}"></script>
+{% endblock %} 
+
+{% block homepage%}主页{% endblock %}
+{% block navbarmenu %}
+<ul class="nav navbar-nav">
+    <li>
+         <a href="#">借阅流程</a>
+    </li>
+    <li>
+         <a href="#">借阅套餐</a>
+    </li>
+    <li>
+         <a href="#">最新活动</a>
+    </li>
+    <li>
+         <a href="#">联系我们</a>
+    </li>
+</ul>
 {% endblock %}
 
 
 <script type="text/javascript">
 	{% block jscode %}
 	var filter ={lang:[],age:[],subject:[],pageindex:0};
+	var BOOKSINONEPAGE=32;
 	var totalpages;
-
-	function isMobile(str){  
-	var myreg=/(^1[3|4|5|7|8]\d{9}$)/;  
-	if (!myreg.test(str)){
-		return false;  
-	}
-		return true;  
-	}
-
-	//显示book
+	var bookitems;
+	var maxindex;
 	function showbooklist(bookitems)
 	{
 		//把前一次显示内容隐藏
-		$('#firstpage').children('div').css({'display':'none'});
+		$('.bookitem').css({'display':'none'});
 		$('#firstpage').children().css({'border-style':'none'});//隐藏所有边框
 
 		//找到第一个book所在位置
@@ -68,11 +78,11 @@
 			}	
 			else
 			{
-				bookitem.children('h3').children('a').first().text(bookitems[i].fields.bookname.substring(0,30));
+				bookitem.children('h3').children('a').first().text(bookitems[i].fields.bookname.substring(0,20));
 				bookitem.children('p').first().children('span').first().text(bookitems[i].fields.author.substring(0,24));
 			}
 			bookitem.children('h3').children('a').first().attr('href',href);
-			bookitem.children('h3').css({'font-size':'18px','color':'#9370DB'});
+			bookitem.children('h3').css({'font-size':'14px','color':'#9370DB'});
 
 			
 			
@@ -88,7 +98,7 @@
 
 			bookitem=bookitem.next();
 		}
-		}
+	}
 	//显示页码函数
 	function showpageindex(maxindex)
 	{
@@ -113,74 +123,20 @@
 		if (totalpages>maxindex)
 			$('#indexpagedown').children('a').css({'display':'inline'});
 	}
-	//条件筛选函数
-	function filter_booklist(filter){
-		$.ajax({
-			type: 'GET',
-			url:"/mylibrary/filter_booklist",
-			data:{
-				"filter": JSON.stringify(filter),
-			},
-			dataType: 'json',
-			success: function(json) 
-			{
-				var result = json.result;
-				if (result == 0) 
-				{
-					var bookitems =JSON.parse(json.bookitems);
-					var maxindex =JSON.parse(json.maxindex);
-					totalpages=JSON.parse(json.totalpages);
-	  				showbooklist(bookitems);
-	  				if (filter.pageindex==1)  //代表是重新筛选，所以刷新pageindex
-	  					showpageindex(maxindex,totalpages)
-				}
-				else
-				{
-					$('#firstpage').children('div').css({'display':'none'});
-					$('#firstpage').html('没有找到符合条件的书。')
-				}
-			},
-		});
-	}
-	//输入框查找函数
-	function search_booklist(searchtext){
-		$.ajax({
-			type:'GET',
-			url:'/mylibrary/search_booklist',
-			data:{
-				'searchtext':searchtext,	
-			},
-			dataType:'json',
-			success:function(json)
-			{
-				var result=json.result;
-				if (result==0)
-				{
-					var bookitems =JSON.parse(json.bookitems);
-					var maxindex =JSON.parse(json.maxindex);
-					totalpages=JSON.parse(json.totalpages);	
-					showbooklist(bookitems);
-					showpageindex(maxindex,totalpages);
-				}
-				else
-				{
-					$('#firstpage').children('div').css({'display':'none'});
-					$('#firstpage').html('没有找到符合条件的书。')
-				}	
-
-			},
-		});
-	}
+	//显示book
 	$(document).ready(function(){
 		{% if bookitems %}
-			var bookitems ={{bookitems|safe}};
-			var maxindex ={{maxindex}};
+			bookitems ={{bookitems|safe}};
+			maxindex ={{maxindex}};
 			totalpages={{totalpages}};
-			showbooklist(bookitems);
+			if (bookitems.length>BOOKSINONEPAGE)
+			{
+				var bookitems_show=bookitems.slice(0,BOOKSINONEPAGE);
+			}
+			showbooklist(bookitems_show);
 			showpageindex(maxindex);
 		{% endif %}
-
-        
+       
 		//翻页区域
 			//页面内点击pageindex事件
 		$('.pageindex').click(function(){
@@ -189,8 +145,15 @@
 			$('.pageindex').css({'background':'#FFFFFF'});
 			$(this).css({'background':'#8DB6CD'});
 			//hide all displayed bookitem first
-			filter.pageindex=index;
-			filter_booklist(filter)
+			if (index==maxindex)
+			{
+				bookitems_show=bookitems.slice((index-1)*BOOKSINONEPAGE,bookitems.length);
+			}
+			else
+			{
+				bookitems_show=bookitems.slice((index-1)*BOOKSINONEPAGE,index*BOOKSINONEPAGE);
+			}
+			showbooklist(bookitems_show);
 		})
 			//下翻页事件
 		$('#indexpagedown').children().click(function(){
@@ -239,112 +202,59 @@
 
 		})
 		//找书筛选区域
-		$('#lang_filter').change(function(){
-			if ($(this).val()==null)
-			{
-				filter.lang=[]
-			}
-			else
-				filter.lang=$(this).val();
-			filter.pageindex=1;
-			filter_booklist(filter);
-		})
-		$('#age_filter').change(function(){
-			if ($(this).val()==null)
-			{
-				filter.age=[]
-			}
-			else
-			filter.age=$(this).val();
-			filter.pageindex=1;
-			filter_booklist(filter);
-		})
-		$('#subject_filter').change(function(){
-			if ($(this).val()==null)
-			{
-				filter.subject=[]
-			}
-			else
-			filter.subject=$(this).val();
-			filter.pageindex=1;
-			filter_booklist(filter);
-		})
+		// $('#lang_filter').change(function(){
+		// 	if ($(this).val()==null)
+		// 	{
+		// 		filter.lang=[]
+		// 	}
+		// 	else
+		// 		filter.lang=$(this).val();
+		// 	filter.pageindex=1;
+		// 	filter_booklist(filter);
+		// })
+		// $('#age_filter').change(function(){
+		// 	if ($(this).val()==null)
+		// 	{
+		// 		filter.age=[]
+		// 	}
+		// 	else
+		// 	filter.age=$(this).val();
+		// 	filter.pageindex=1;
+		// 	filter_booklist(filter);
+		// })
+		// $('#subject_filter').change(function(){
+		// 	if ($(this).val()==null)
+		// 	{
+		// 		filter.subject=[]
+		// 	}
+		// 	else
+		// 	filter.subject=$(this).val();
+		// 	filter.pageindex=1;
+		// 	filter_booklist(filter);
+		// })
 		//输入框查找
 		$('#searchsubmit').click(function(){
 			var searchtext=$('#searchtext').val();
 			if (searchtext.length==0)
 				return;
-			search_booklist(searchtext);
-		})
-		//将书加入借书车
-		$('.addcart').click(function(){
-			var bookid=$(this).parent().parent().children('a').children('img').attr('src').slice(15,28);
-			$.ajax({
-			type:'GET',
-			url:'/mylibrary/add_bookcart',
-			data:{
-				'bookid':bookid,
-			},
-			dataType:'json',
-			success:function(json)
-			{
-				var result=json.result;
-				if (result==0)
-				{
-					$('#poptips').text('ok,已经将本书放进您的借书车');
-					$('#myModal').modal('show');
-				}
-				else if (result==1)
-				{
-					$('#poptips').text('该书已经在您的借书车中了喔');
-					$('#myModal').modal('show');
-				}
-				else if(result==2)
-				{
-					$('#poptips').text('抱歉，您的借书车上的书太多了，请清理一些或转入藏书车');
-					$('#myModal').modal('show');
-				}
-				else
-					$('#loginmodal').modal('show');				
-			}
-		});
+			searchbooklist(searchtext);
 		})
 
-		//将书放入收藏
+		
+		$('.addcart').click(function(){
+			var bookid=$(this).parent().parent().children('a').children('img').attr('src').slice(15,28);
+			var url="/mylibrary/addbookcart";
+			addbook(bookid,url);
+		})
+
 		$('.storeup').click(function(){
 			var bookid=$(this).parent().parent().children('a').children('img').attr('src').slice(15,28);
-			$.ajax({
-			type:'GET',
-			url:'/mylibrary/add_storeup',
-			data:{
-				'bookid':bookid,
-			},
-			dataType:'json',
-			success:function(json)
-			{
-				var result=json.result;
-				if (result==0)
-				{
-					$('#poptips').text('ok,已经将本书收藏');
-					$('#myModal').modal('show');
-				}
-				else if (result==1)
-				{
-					$('#poptips').text('该书已经在您的收藏单中了喔');
-					$('#myModal').modal('show');
-				}
-				else
-					$('#loginmodal').modal('show');				
-			}
-		});
+			var url="/mylibrary/addstoreup";
+			addbook(bookid,url);
 		})
 	})
 {% endblock %}
 </script>
-
-    
-
-				
 			
 {% block search %}
 	<form class="navbar-form navbar-left" role="search">
@@ -357,519 +267,469 @@
 
 {% block filter %}			
 	<!--条件筛选区域-->
-	<div class="row clearfix">
-		<div class="col-md-12 column">
-			<script type="text/javascript">
-			    $(document).ready(function() {
-			        $('#lang_filter').multiselect({
-			            includeSelectAllOption: false,
-			            enableFiltering: false
-			        });
-		            $('#age_filter').multiselect({
-			            includeSelectAllOption: false,
-			            enableFiltering: false
-			        });
-			        $('#subject_filter').multiselect({
-			            includeSelectAllOption: false,
-			            enableFiltering: false
-			        });
-			    });
-			</script>
-			<form class="form-inline" role="form" style="height:60px;padding-top: 12px;">
-			    <div class="form-group  col-sm-3 col-xs-6 column">
-			        <label class="control-label" style="font-size: 14px;">语言:</label>
-			            <select id="lang_filter" name="multiselect[]" multiple="multiple">
-			                <option value="EN">英文</option>
-			                <option value="CN">中文</option>
-			            </select>
-			    </div>
-			    <div class="form-group col-sm-3  col-xs-6 column">
-			        <label class="control-label" style="font-size: 14px;" >主题:</label>
-			            <select id="subject_filter" name="multiselect[]" multiple="multiple">
-			                <option value="1">自然</option>
-			                <option value="2">历史</option>
-			                <option value="3">数学</option>
-			                <option value="4">地理</option>
-			                <option value="5">生物</option>
-			                <option value="6">故事/小说</option>
-			                <option value="7">其他</option>
-			            </select>
-			    </div>
-			    <div class="form-group col-sm-3 col-xs-6 column">
-			        <label class="control-label" style="font-size: 14px;">年龄:</label>
-			            <select id="age_filter" name="multiselect[]" multiple="multiple">
-			                <option value="1">0~2岁</option>
-			                <option value="2">3~5岁</option>
-			                <option value="3">6~8岁</option>
-			                <option value="4">9~12岁</option>
-			                <option value="5">13岁+</option>
-			            </select>
-			    </div>
-		    </form>
-		</div>
-	</div>
+		
 {% endblock %}
 
 	<!-- 32本书页面模板区域 -->
-	{% block content %}
-	<div class="row clearfix" id="firstpage">
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
+{% block content %}
+<div class="row clearfix" style="margin-left: 15px;">
+	<div class="row clearfix col-md-10" >
+		<div class="row clearfix" id="firstpage">
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
+			<div class="col-md-3 column bookitem" style="display:none;">
+				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
+				<h3>
+					<a href="#" style="font-weight: bold;">书名</a>
+				</h3>
+				<p>
+					<span style="font-size: 12px" id="author"></span>
+					<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
+				</p>
+				<p>
+					<button class="btn-sm btn-primary addcart">加入借书架</button>
+					<button class="btn-sm btn-success storeup">收藏</button>
+				</p>
+			</div>
 		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		<div class="col-md-3 column bookitem" style="display:none;">
-			<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
-			<h3>
-				<a href="#" style="font-weight: bold;">书名</a>
-			</h3>
-			<p>
-				<span style="font-size: 12px" id="author"></span>
-				<span style="font-size: 12px;float:right;" id="bookcount">库存:</span>
-			</p>
-			<p>
-				<button class="btn-sm btn-primary addcart">加入借书架</button>
-				<button class="btn-sm btn-success storeup">收藏</button>
-			</p>
-		</div>
-		
-	</div>
-	<div class="row"  style="border-bottom: solid 1px;" >
-		<div class="col-md-12 column" >
+		<!-- <div class="row"  style="border-bottom: solid 1px;" > -->
+		<div class="row clearfix" >
 			<ul class="pagination" style="float: right;">
 				<li id="indexpageup">
 					 <a style="display: none;"><<</a>
 				</li>
-
 				<li>
 					 <a href="#" class="pageindex" name='pageindex' style="display: none;"></a>
 				</li>
@@ -890,6 +750,10 @@
 				</li>
 			</ul>
 		</div>
+		<!-- </div> -->
+	</div>
+
+	<div class="row clearfix col-md-2">
 	</div>
 </div>
 {% endblock %}

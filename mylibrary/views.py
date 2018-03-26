@@ -2,12 +2,12 @@ from .models import Book, Bookcart, Bookstoreup
 from django.views import generic
 from django.shortcuts import render
 from django.contrib.auth.models import User
-from mysite.settings import BOOKSINPAGE,MAXPAGEINDEX,MAXBOOKSINBOOKCART
+from mysite.settings import BOOKSINPAGE,MAXPAGEINDEX
 from django.http import JsonResponse
 import math, json
 from django.core import serializers
 
-def show_library(request):
+def showlibrary(request):
 	context={}
 	bookitems=Book.objects.all()
 	if bookitems.count():
@@ -15,7 +15,8 @@ def show_library(request):
 	return render(request, 'mylibrary/library.html',context)
 
 
-def fiter_booklist(request):
+def filter_booklist(request):
+	print('in python filter function')
 	context={'result':0}
 	filter=request.GET['filter']
 	language_filter=json.loads(filter)['lang']
@@ -32,7 +33,7 @@ def fiter_booklist(request):
 		age_filter=[1,2,3,4,5]
 
 	bookitems = Book.objects.filter(language__in= language_filter,subject__in=subject_filter,for_age__in=age_filter)
-	if bookitems:
+	if bookitems.count():
 		context['bookitems'],context['totalpages'],context['maxindex']=pagations(bookitems)
 	else:
 		context['result']=1
@@ -61,13 +62,13 @@ def search_booklist(request):
 	return JsonResponse(context) 
 
 
-def add_bookcart(request):
+def addbookcart(request):
 	context={'result':0}
 	if request.user.is_authenticated:
 		bookid=request.GET['bookid']
 		bookcart =Bookcart.objects.filter(user=request.user,book_id=bookid)
-		if bookcart.count()==MAXBOOKSINBOOKCART:
-			context['result']=2
+		# if bookcart.count()==MAXBOOKSINBOOKCART:
+		# 	context['result']=2
 		if not bookcart:
 			bookitem = Book.objects.get(book_id=bookid)
 			new_bookcart=Bookcart(bookname=bookitem.bookname,book_id=bookitem)
@@ -80,7 +81,7 @@ def add_bookcart(request):
 	return JsonResponse(context)
 
 
-def add_storeuup(request):
+def addstoreuup(request):
 	context={'result':0}
 	if request.user.is_authenticated:
 		bookid=request.GET['bookid']
@@ -100,8 +101,8 @@ def pagations(bookitems):
 	totalbooks=bookitems.count()
 	if totalbooks>0:
 		totalpages=math.ceil(totalbooks/BOOKSINPAGE)
-		if totalpages>1:
-			bookitems=bookitems[0:BOOKSINPAGE]	#一次最多取 BOOKSINPAGE本书的数据
+		if totalpages>5:
+			bookitems=bookitems[0:BOOKSINPAGE*5]	#一次最多取 5*BOOKSINPAGE本书的数据
 		else:
 			bookitems=bookitems[0:]
 
@@ -112,7 +113,6 @@ def pagations(bookitems):
 		bookitems = serializers.serialize("json", bookitems)
 		return bookitems, totalpages,maxindex
 	return False
-
 
 def BookDetail(request,bookid):
 	context={}
