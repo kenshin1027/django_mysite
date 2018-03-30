@@ -171,9 +171,8 @@
             </div>
         </div>
     {% block header %}{% endblock %}
-    {% block filter %}{% endblock %}
     {% block jumbotron %}{% endblock %}
-    {% block content %}{% endblock %}
+    {% block content %}{% block filter %}{% endblock %}{% endblock %}
         
     <!--modal区域-->
     <div class="row clearfix">

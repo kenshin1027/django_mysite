@@ -202,36 +202,39 @@
 
 		})
 		//找书筛选区域
-		// $('#lang_filter').change(function(){
-		// 	if ($(this).val()==null)
-		// 	{
-		// 		filter.lang=[]
-		// 	}
-		// 	else
-		// 		filter.lang=$(this).val();
-		// 	filter.pageindex=1;
-		// 	filter_booklist(filter);
-		// })
-		// $('#age_filter').change(function(){
-		// 	if ($(this).val()==null)
-		// 	{
-		// 		filter.age=[]
-		// 	}
-		// 	else
-		// 	filter.age=$(this).val();
-		// 	filter.pageindex=1;
-		// 	filter_booklist(filter);
-		// })
-		// $('#subject_filter').change(function(){
-		// 	if ($(this).val()==null)
-		// 	{
-		// 		filter.subject=[]
-		// 	}
-		// 	else
-		// 	filter.subject=$(this).val();
-		// 	filter.pageindex=1;
-		// 	filter_booklist(filter);
-		// })
+		$('#lang_filter').change(function(){
+			if ($(this).val()==null)
+			{
+				filter.lang=[]
+			}
+			else
+				filter.lang=$(this).val();
+			filter.pageindex=1;
+			//filter_booklist(filter);
+			console.log('lang_filter:',filter.lang);
+		})
+		$('#age_filter').change(function(){
+			if ($(this).val()==null)
+			{
+				filter.age=[]
+			}
+			else
+			filter.age=$(this).val();
+			filter.pageindex=1;
+			//filter_booklist(filter);
+			console.log('age_filter:',filter.age);
+		})
+		$('#subject_filter').change(function(){
+			if ($(this).val()==null)
+			{
+				filter.subject=[]
+			}
+			else
+			filter.subject=$(this).val();
+			filter.pageindex=1;
+			//filter_booklist(filter);
+			console.log('subject_filter:',filter.subject);
+		})
 		//输入框查找
 		$('#searchsubmit').click(function(){
 			var searchtext=$('#searchtext').val();
@@ -265,15 +268,73 @@
 	</form>
 {% endblock%}
 
-{% block filter %}			
-	<!--条件筛选区域-->
-		
-{% endblock %}
 
 	<!-- 32本书页面模板区域 -->
 {% block content %}
 <div class="row clearfix" style="margin-left: 15px;">
 	<div class="row clearfix col-md-10" >
+		{% block filter %}
+			<!--条件筛选区域-->
+		<div class="row clearfix">
+			<div class="col-md-3">
+				<form role="form">
+					<div class="form-group">
+						<label for="name">语言</label>
+						<select class="form-control" style="width: 100px;" id="lang_filter">
+							<option value="0">全部</option>
+							<option value="1">英语</option>
+							<option value="2">中文</option>
+						</select>
+					</div>
+				</form>
+			</div>
+			<div class="col-md-3">
+				<form role="form">
+					<div class="form-group">
+						<label for="name">年龄</label>
+						<select class="form-control" style="width: 140px;" id="age_filter">
+							<option value="0">全部</option>
+							<option value="1">0~2岁</option>
+							<option value="2">3~4岁</option>
+							<option value="3">5~7岁</option>
+							<option value="4">8~12岁</option>
+						</select>
+					</div>
+				</form>
+			</div>
+			<div class="col-md-3">
+				<form role="form">
+					<div class="form-group">
+						<label for="name">主题</label>
+						<select class="form-control" style="width: 140px;" id="subject_filter">
+							<option value="0">全部</option>
+							<option value="1">科普</option>
+							<option value="2">认知</option>
+							<option value="3">饮食</option>
+							<option value="4">身体</option>
+							<option value="5">洞书</option>
+						</select>
+					</div>
+				</form>
+			</div>
+			<div class="col-md-3">
+				<form role="form">
+					<div class="form-group">
+						<label for="name">大师</label>
+						<select class="form-control" style="width: 140px;" id="author_filter">
+							<option>全部</option>
+							<option>波特</option>
+							<option>李伯顿</option>
+							<option>宫西达也</option>
+							<option>五味太郎</option>
+							<option>大卫·威斯纳</option>
+						</select>
+					</div>
+				</form>
+			</div>
+		</div>
+		{% endblock %}
+
 		<div class="row clearfix" id="firstpage">
 			<div class="col-md-3 column bookitem" style="display:none;">
 				<a href="#"><img alt="200x200" src="" class="img-rounded img-responsive" id="img"></a>
